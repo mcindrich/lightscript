@@ -1,6 +1,29 @@
 #include <lightscript.h>
+#include <lightscript/function.h>
 #include <stdio.h>
 #include <stdlib.h>
+
+#ifdef MAIN_DEBUGGING
+
+struct ls_var_t file_new(struct ls_var_list_t *args) {
+  struct ls_var_t ret;
+  ls_var_create(&ret);
+  return ret;
+}
+
+struct ls_var_t file_close(struct ls_var_list_t *args) {
+  struct ls_var_t ret;
+  ls_var_create(&ret);
+  return ret;
+}
+
+struct ls_var_t file_read(struct ls_var_list_t *args) {
+  struct ls_var_t ret;
+  ls_var_create(&ret);
+  return ret;
+}
+
+#endif
 
 int main(int argc, char **argv) {
   int main_ret_val = 0;
@@ -19,21 +42,29 @@ int main(int argc, char **argv) {
     ls_interpreter_delete(&inter);
   }
 #else
-  struct ls_var_t var, ref;
-  ls_var_create(&var);
-  ls_var_create(&ref);
+  struct ls_function_t file_new_func, file_close_func, file_read_func;
+  struct ls_var_t file_new_var, file_close_var, file_read_var;
 
-  ls_var_set_name(&var, "name");
-  ls_var_set_name(&ref, "ref_var");
+  ls_function_create(&file_new_func);
+  ls_function_create(&file_close_func);
+  ls_function_create(&file_read_func);
 
-  ls_var_set_s8_value(&var, (s8)8);
-  ls_var_set_reference_value(&ref, &var);
+  ls_var_create(&file_new_var);
+  ls_var_create(&file_close_var);
+  ls_var_create(&file_read_var);
 
-  //s8 val = ls_var_get_s8_value(&var);
-  s8 val = ls_var_get_s8_value(ls_var_get_reference_value(&ref));
-  printf("%d\n", val);
-  ls_var_delete(&var);
-  ls_var_delete(&ref);
+  // file = new File("file.txt"); ==> creates an object
+  // str = file:read(); // calls read function from object variables
+  // file:close();
+  ls_var_set_name(&file_new_var, "__new__");
+  ls_var_set_name(&file_close_var, "close");
+  ls_var_set_name(&file_read_var, "read");
+
+  ls_function_set_c_function(&file_new_func, file_new);
+  ls_function_set_c_function(&file_close_func, file_close);
+  ls_function_set_c_function(&file_read_func, file_read);
+
+
 #endif
   return main_ret_val;
 }

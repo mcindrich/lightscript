@@ -42,7 +42,6 @@ type == ls_token_type_double_colon\
 type != ls_token_type_semicolon && \
 type != ls_token_type_do_keyword && \
 type != ls_token_type_in_keyword && \
-type != ls_token_type_colon && \
 !LS_IS_ASSIGN_OPERATOR(type) \
 )
 

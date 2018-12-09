@@ -420,7 +420,6 @@ void ls_parser_create(struct ls_parser_t *parser, struct ls_lexer_t *lex,
   parser->root_node = NULL;
   parser->current_node = &parser->root_node;
   parser->next_node = &parser->root_node;
-
   ls_node_stack_create(&parser->node_stack, lex->mss); // alloc the stack
   // parser_debug_print_tokens(parser);
   size_t i = 0, last_tok = 0;

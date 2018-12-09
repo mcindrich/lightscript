@@ -42,7 +42,7 @@ enum ls_token_type_t ls_token_get_word_type(char *str) {
   if(strcmp(str, "ret") == 0) tt = ls_token_type_return_keyword;
   else if(strcmp(str, "import") == 0) tt = ls_token_type_include_keyword;
   else if(strcmp(str, "def") == 0) tt = ls_token_type_def_keyword;
-  else if(strcmp(str, "new") == 0) tt = ls_token_type_new_keyword;
+  //else if(strcmp(str, "new") == 0) tt = ls_token_type_new_keyword;
   else if(strcmp(str, "if") == 0) tt = ls_token_type_if_keyword;
   else if(strcmp(str, "elif") == 0) tt = ls_token_type_elsif_keyword;
   else if(strcmp(str, "else") == 0) tt = ls_token_type_else_keyword;

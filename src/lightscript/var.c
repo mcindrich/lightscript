@@ -157,10 +157,15 @@ void ls_var_set_string_concat_value(struct ls_var_t *var, char *s1, char *s2) {
 
 void ls_var_set_string_multiply_value(struct ls_var_t *var, char *str, 
   int mul) {
-  size_t len = strlen(str), i;
+  const size_t len = strlen(str);
+  size_t i;
   var->value = (char *) malloc(sizeof(char) * (len * mul + 1));
-  for(i = 0; i < mul; i++) {
-    memcpy((char*)var->value + len * i, str, len);
+  memcpy((char*)var->value, str, len);
+
+  // faster multiplication
+  for(i = 1; i < mul; i += i) {
+     memcpy(var->value + i * len, var->value, i+i > mul? len * (mul - i) : 
+      len * i);
   }
   *((char*)var->value + mul * len) = 0;
   var->type = ls_var_type_string;

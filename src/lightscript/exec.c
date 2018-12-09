@@ -175,6 +175,8 @@ struct ls_var_t ls_exec_expr_recursion(struct ls_exec_t *exec,
         ret = ls_var_operator_and(&left, &right);
       } else if(tt == ls_token_type_or_op) {
         ret = ls_var_operator_or(&left, &right);
+      } else if(tt == ls_token_type_colon) {
+        // get object stuff
       }
       ls_var_delete(&left);
       ls_var_delete(&right);

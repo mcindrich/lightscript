@@ -5,11 +5,18 @@
 
 static void ls_lex_sl_comment(char **cptr) {
   for(*cptr += 1; **cptr && **cptr != '\n'; ++(*cptr));
+  if(!**cptr) {
+    --(*cptr);
+  }
 }
 
 static void ls_lex_ml_comment(char **cptr) {
   for(*cptr += 2; **cptr; ++(*cptr)) {
     if(**cptr == '^' && *(*cptr + 1) == '^') break;
+  }
+  if(!**cptr) {
+    --(*cptr);
+    return;
   }
   *cptr += 1;
 }
