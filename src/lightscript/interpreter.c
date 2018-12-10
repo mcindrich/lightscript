@@ -1,6 +1,8 @@
 #include <lightscript/interpreter.h>
 #include <lightscript/function.h>
+#include <lightscript/object.h>
 #include <stdio.h>
+#include <math.h>
 #include <stdlib.h>
 
 static char* read_file(char* fn) {
@@ -51,6 +53,12 @@ struct ls_var_t ls_c_print_func(struct ls_var_list_t *args) {
   return ret;
 }
 
+struct ls_var_t ls_c_pow_func(struct ls_var_list_t *args) {
+  struct ls_var_t ret;
+  ls_var_create(&ret); // void ==> no type
+  ls_var_set_s32_value(&ret, (int)pow(ls_var_get_s32_value(&args->vars[0]), ls_var_get_s32_value(&args->vars[1])));
+  return ret;
+}
 void ls_interpreter_create(struct ls_interpreter_t *inter, int argc, 
   char **argv) {
   // parse arguments and setup the interpreter for working
@@ -74,16 +82,31 @@ int ls_interpreter_execute(struct ls_interpreter_t *inter) {
   } else {
     // go and execute root statement
 #ifndef PARSER_DEBUGGING
-    struct ls_function_t print_f;
-    struct ls_var_t print_f_var;
+    // test functions
+    struct ls_function_t print_f, pow_f;
+    // test objects
+    struct ls_object_t file_o;
+    // vars for functions and objects
+    struct ls_var_t print_f_var, pow_f_var, file_o_var;
     ls_var_list_create(&inter->global_vars, 0);
+
     ls_var_create(&print_f_var);
     ls_var_set_name(&print_f_var, "CPrint");
+
+    ls_var_create(&pow_f_var);
+    ls_var_set_name(&pow_f_var, "CPow");
+
     ls_function_create(&print_f);
     ls_function_set_c_function(&print_f, ls_c_print_func);
+
+    ls_function_create(&pow_f);
+    ls_function_set_c_function(&pow_f, ls_c_pow_func);
+
     ls_var_set_function_value(&print_f_var, &print_f);
+    ls_var_set_function_value(&pow_f_var, &pow_f);
+
     ls_var_list_add_var(&inter->global_vars, &print_f_var);
-    
+    ls_var_list_add_var(&inter->global_vars, &pow_f_var);
   
     ls_exec_create(&inter->exec, inter->ast.root);
     ls_exec_set_global_vars(&inter->exec, &inter->global_vars);

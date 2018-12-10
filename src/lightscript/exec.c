@@ -134,6 +134,119 @@ static struct ls_var_t ls_exec_expr_stack(struct ls_exec_t *exec,
   return ret_var;
 }
 
+static struct ls_var_t ls_exec_expr_stack2(struct ls_exec_t *exec,
+  struct ls_node_t *node) {
+  struct ls_node_stack_t node_stack, op_stack;
+  struct ls_var_stack_t var_stack;
+  struct ls_var_t ret_var, temp_var, left ,right, res;
+  enum ls_token_type_t tt;
+  struct ls_node_t *current_node = node, *pop_node = NULL, *op_node = NULL;
+
+  size_t *op_counters = (size_t *) calloc(100, sizeof(size_t));
+
+  boolean side = boolean_false;
+  size_t sws = 0;
+
+  ls_var_create(&ret_var);
+  ls_var_create(&temp_var);
+  
+  // needs to be precounted
+  ls_node_stack_create(&node_stack, 100);
+  ls_node_stack_create(&op_stack, 100);
+  ls_var_stack_create(&var_stack, 100);
+
+  while(current_node || node_stack.count) {
+    while(current_node) {
+      ls_node_stack_push(&node_stack, current_node);
+      if(current_node->children) {
+        ls_node_stack_push(&op_stack, current_node);
+      }
+      current_node = current_node->children? current_node->children[0] : NULL;
+    }
+    //printf("Size: %d\n", op_stack.count);
+    pop_node = ls_node_stack_pop(&node_stack);
+    tt = pop_node->token.type;
+
+    if(pop_node->children) {
+      // operator ==> switch side
+      current_node = pop_node->children[1];
+    } else {
+      // operand
+      if(tt == ls_token_type_number) {
+        double val = atof(pop_node->token.value.s);
+        // check if it's an integer ==> TODO: all int types
+        // search for '.' and if it exists ==> it's a double
+        char* cont = strchr(pop_node->token.value.s, '.');
+        if(!cont) {
+          ls_var_set_s32_value(&temp_var, (s32)val);
+        } else {
+          ls_var_set_double_value(&temp_var, val);
+        }
+      }
+      ls_var_stack_push(&var_stack, &temp_var);
+      ++op_counters[op_stack.count];
+
+      while(op_counters[op_stack.count] == 2) {
+        op_node = ls_node_stack_pop(&op_stack);
+        tt = op_node->token.type;
+
+        right = ls_var_stack_pop(&var_stack);
+        left = ls_var_stack_pop(&var_stack);
+
+        /*printf("L: "); ls_exec_debug_print_var(&left);
+        printf("R: "); ls_exec_debug_print_var(&right);*/
+
+        if(tt == ls_token_type_plus) {
+          res = ls_var_operator_add(&left, &right);
+        } else if(tt == ls_token_type_minus) {
+          res = ls_var_operator_sub(&left, &right);
+        } else if(tt == ls_token_type_multiply) {
+          res = ls_var_operator_mul(&left, &right);
+        } else if(tt == ls_token_type_divide) {
+          res = ls_var_operator_div(&left, &right);
+        } else if(tt == ls_token_type_percent) {
+          res = ls_var_operator_mod(&left, &right);
+        }  else if(tt == ls_token_type_less_than) {
+          res = ls_var_operator_lt(&left, &right);
+        } else if(tt == ls_token_type_less_equal) {
+          res = ls_var_operator_le(&left, &right);
+        } else if(tt == ls_token_type_greater_than) {
+          res = ls_var_operator_gt(&left, &right);
+        } else if(tt == ls_token_type_greater_equal) {
+          res = ls_var_operator_ge(&left, &right);
+        } else if(tt == ls_token_type_equal_equal) {
+          res = ls_var_operator_eq(&left, &right);
+        } else if(tt == ls_token_type_not_equal) {
+          res = ls_var_operator_ne(&left, &right);
+        } else if(tt == ls_token_type_and_op) {
+          res = ls_var_operator_and(&left, &right);
+        } else if(tt == ls_token_type_or_op) {
+          res = ls_var_operator_or(&left, &right);
+        } else if(tt == ls_token_type_colon) {
+          // get object stuff
+          res = ls_var_operator_obj(&left, &right);
+        }
+        ls_var_delete(&left);
+        ls_var_delete(&right);
+
+        ls_var_stack_push(&var_stack, &res);
+
+        op_counters[op_stack.count + 1] = 0;
+        ++op_counters[op_stack.count];
+      }
+      current_node = NULL;
+    }
+  }  
+
+  ret_var = ls_var_stack_pop(&var_stack);
+
+  free(op_counters);
+  ls_node_stack_delete(&node_stack);
+  ls_node_stack_delete(&op_stack);
+  ls_var_stack_delete(&var_stack);
+  return ret_var;
+}
+
 static struct ls_var_t ls_exec_expr_recursion(struct ls_exec_t *, 
   struct ls_node_t *);
 struct ls_var_t ls_exec_function_call_statement(struct ls_exec_t *, 
@@ -177,6 +290,7 @@ struct ls_var_t ls_exec_expr_recursion(struct ls_exec_t *exec,
         ret = ls_var_operator_or(&left, &right);
       } else if(tt == ls_token_type_colon) {
         // get object stuff
+        ret = ls_var_operator_obj(&left, &right);
       }
       ls_var_delete(&left);
       ls_var_delete(&right);
@@ -421,7 +535,7 @@ static void ls_exec_assign_statement(struct ls_exec_t *exec,
   } else {
     // just global
     ret_var = ls_var_list_get_var_by_name(exec->global_vars, var_name);
-    expr_value = ls_exec_expr_recursion(exec, node->children[1]);
+    expr_value = ls_exec_expr_stack2(exec, node->children[1]);
 
     if(!ret_var) {
       // create variable and push it to the list

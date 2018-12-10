@@ -380,6 +380,12 @@ struct ls_var_t ls_var_operator_mod(struct ls_var_t *l, struct ls_var_t *r) {
   return new;
 }
 
+struct ls_var_t ls_var_operator_obj(struct ls_var_t *l, struct ls_var_t *r) {
+  struct ls_var_t new;
+  ls_var_create(&new);
+  return new;
+}
+
 struct ls_var_t ls_var_operator_lt(struct ls_var_t *l, struct ls_var_t *r) {
   struct ls_var_t new;
   ls_var_create(&new);
