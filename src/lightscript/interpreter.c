@@ -45,6 +45,31 @@ struct ls_var_t ls_c_print_func(struct ls_var_list_t *args) {
       case ls_var_type_boolean:
         printf("%s", ls_var_get_boolean_value(var)? "True" : "False");
         break;
+      case ls_var_type_reference:
+        while(LS_VAR_IS_REFERENCE(var)) {
+          var = ls_var_get_reference_value(var);
+        }
+        printf("Ref '%s' = ", var->name);
+        switch(var->type) {
+          case ls_var_type_none:
+            printf("Nil");
+            break;
+          case ls_var_type_s32:
+            printf("%d", ls_var_get_s32_value(var));
+            break;
+          case ls_var_type_double:
+            printf("%lf", ls_var_get_double_value(var));
+            break;
+          case ls_var_type_string:
+            printf("%s", ls_var_get_string_value(var));
+            break;
+          case ls_var_type_boolean:
+            printf("%s", ls_var_get_boolean_value(var)? "True" : "False");
+            break;
+          default:
+            break;
+        }
+        break;
       default:
         break;
     }

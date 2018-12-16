@@ -126,7 +126,7 @@ struct ls_node_t *ls_parse_expression(struct ls_parser_t *parser, size_t *pos,
   struct ls_node_t *tnode0 = NULL, *tnode1 = NULL, *tnode2 = NULL, 
     *function_node = NULL, *current_child = NULL;
   struct ls_token_t temp_token;
-  size_t mss = 0, op_mss = 0, i = *pos;
+  size_t mss = 0, op_mss = 0, i = *pos, args_count;
 
   for(; *pos < parser->token_count &&
     LS_IS_VALID_EXPR_TOKEN(parser->tokens[*pos].type); (*pos) += 1, ++mss) {
@@ -173,6 +173,11 @@ struct ls_node_t *ls_parse_expression(struct ls_parser_t *parser, size_t *pos,
         ls_node_create(&tnode0, 1, ls_node_type_function_call, 
           &parser->tokens[i]);
         ls_node_stack_push(&second_stack, tnode0);
+        if(parser->tokens[i+2].type == ls_token_type_rparenth) {
+          args_count = 0;
+        } else {
+          args_count = 1;
+        }
       } else if(parser->tokens[i+1].type == ls_token_type_lbracket) {
         // array node
       } else {
@@ -181,7 +186,7 @@ struct ls_node_t *ls_parse_expression(struct ls_parser_t *parser, size_t *pos,
       }
     } else if(LS_IS_OPERATOR(parser->tokens[i].type)) {
       while(ls_token_stack_top(&op_stack) && 
-        ls_token_stack_top(&op_stack)->type >= parser->tokens[i].type) {
+        ls_token_stack_top(&op_stack)->type > parser->tokens[i].type) {
         temp_token = ls_token_stack_pop(&op_stack);
         tnode0 = ls_node_stack_pop(&expr_stack);
         tnode1 = ls_node_stack_pop(&expr_stack);
@@ -209,7 +214,9 @@ struct ls_node_t *ls_parse_expression(struct ls_parser_t *parser, size_t *pos,
       if(second_stack.count) {
         // it's a function
         function_node = ls_node_stack_pop(&second_stack);
-        function_node->children[0] = ls_node_stack_pop(&expr_stack);
+        if(args_count) {
+          function_node->children[0] = ls_node_stack_pop(&expr_stack);
+        }
         ls_node_stack_push(&expr_stack, function_node);
       }
       ls_token_stack_pop(&op_stack);
@@ -217,7 +224,7 @@ struct ls_node_t *ls_parse_expression(struct ls_parser_t *parser, size_t *pos,
   }
 
   while(ls_token_stack_top(&op_stack) &&
-    ls_token_stack_top(&op_stack)->type >= parser->tokens[i].type) {
+    ls_token_stack_top(&op_stack)->type > parser->tokens[i].type) {
     temp_token = ls_token_stack_pop(&op_stack);
     tnode0 = ls_node_stack_pop(&expr_stack);
     tnode1 = ls_node_stack_pop(&expr_stack);
@@ -401,6 +408,17 @@ static void ls_parse_return_keyword(struct ls_parser_t *parser, size_t *pos,
   parser->next_node = &(*parser->current_node)->next;
 }
 
+static void ls_parse_expressions(struct ls_parser_t *parser, size_t last, 
+  struct ls_error_t *err) {
+  struct ls_node_t *expr = ls_parse_expression(parser, &last, err);
+  if(expr) {
+    *parser->current_node = expr;
+    parser->next_node = &(*parser->current_node)->next;
+  } else {
+    // err
+  }
+}
+
 static void ls_parse_func_noreturn(struct ls_parser_t *parser, size_t last, 
   size_t *pos, struct ls_error_t *err) {
   struct ls_node_t *expr = ls_parse_expression(parser, &last, err);
@@ -458,13 +476,8 @@ void ls_parser_create(struct ls_parser_t *parser, struct ls_lexer_t *lex,
     } else if(parser->tokens[i].type == ls_token_type_object_keyword) {
       ls_parse_object_keyword(parser, &i, err);
       last_tok = i + 1;
-    } else if(LS_IS_ASSIGN_OPERATOR(parser->tokens[i].type)) {
-      ls_parse_assign_operator(parser, last_tok, &i, err);
-      last_tok = i + 1;
-    } else if(parser->tokens[i].type == ls_token_type_semicolon && 
-      parser->tokens[i-1].type == ls_token_type_rparenth) {
-      //printf("Noreturn %d\n", parser->tokens[i].line_number);
-      ls_parse_func_noreturn(parser, last_tok, &i, err);
+    } else if(parser->tokens[i].type == ls_token_type_semicolon) {
+      ls_parse_expressions(parser, last_tok, err);
       last_tok = i + 1;
     }
     parser->current_node = parser->next_node;

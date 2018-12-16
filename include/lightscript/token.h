@@ -33,6 +33,8 @@ enum ls_token_type_t {
   ls_token_type_lbracket,
   ls_token_type_rbracket,
 
+  ls_token_type_semicolon,
+  
   ls_token_type_assign_ops_start, // start of assignment operators
   ls_token_type_equal, // =
   ls_token_type_plus_equal, // +=
@@ -43,7 +45,6 @@ enum ls_token_type_t {
   ls_token_type_or_equal, // |=
   ls_token_type_assign_ops_end, // end of assign ops
 
-  ls_token_type_semicolon,
   ls_token_type_comma,
   
   ls_token_type_or_op, // ||

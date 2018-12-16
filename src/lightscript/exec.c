@@ -2,7 +2,6 @@
 #include <lightscript/node-stack.h>
 #include <lightscript/var-stack.h>
 #include <lightscript/defines.h>
-#include <lightscript/u8-stack.h>
 #include <lightscript/function.h>
 #include <string.h>
 #include <stdio.h>
@@ -47,11 +46,18 @@ static void ls_exec_debug_print_var(struct ls_var_t *var) {
   }
 }
 
-static struct ls_var_t ls_exec_expr_stack(struct ls_exec_t *exec,
+static struct ls_var_t ls_exec_expr_recursion(struct ls_exec_t *, 
+  struct ls_node_t *);
+static struct ls_var_t ls_exec_expr_stack(struct ls_exec_t *, 
+  struct ls_node_t *);
+struct ls_var_t ls_exec_function_call_statement(struct ls_exec_t *, 
+  struct ls_node_t *);
+
+struct ls_var_t ls_exec_expr_stack(struct ls_exec_t *exec,
   struct ls_node_t *node) {
   struct ls_node_stack_t node_stack, op_stack;
   struct ls_var_stack_t var_stack;
-  struct ls_var_t ret_var, temp_var, left ,right, res;
+  struct ls_var_t ret_var, temp_var, left ,right, res, *list_var = NULL;
   enum ls_token_type_t tt;
   struct ls_node_t *current_node = node, *pop_node = NULL, *op_node = NULL;
 
@@ -60,7 +66,7 @@ static struct ls_var_t ls_exec_expr_stack(struct ls_exec_t *exec,
   ls_var_create(&ret_var);
   ls_var_create(&temp_var);
   
-  // needs to be precounted
+  // needs to be precounted ==> TODO
   ls_node_stack_create(&node_stack, 100);
   ls_node_stack_create(&op_stack, 100);
   ls_var_stack_create(&var_stack, 100);
@@ -68,29 +74,66 @@ static struct ls_var_t ls_exec_expr_stack(struct ls_exec_t *exec,
   while(current_node || node_stack.count) {
     while(current_node) {
       ls_node_stack_push(&node_stack, current_node);
-      if(current_node->children) {
+      if(current_node->children && 
+        current_node->type != ls_node_type_function_call) {
         ls_node_stack_push(&op_stack, current_node);
       }
-      current_node = current_node->children? current_node->children[0] : NULL;
+      current_node = current_node->children && current_node->type != ls_node_type_function_call? current_node->children[0] : NULL;
     }
     //printf("Size: %d\n", op_stack.count);
     pop_node = ls_node_stack_pop(&node_stack);
     tt = pop_node->token.type;
 
-    if(pop_node->children) {
+    if(pop_node->children && pop_node->type != ls_node_type_function_call) {
       // operator ==> switch side
       current_node = pop_node->children[1];
     } else {
       // operand
-      if(tt == ls_token_type_number) {
-        double val = atof(pop_node->token.value.s);
-        // check if it's an integer ==> TODO: all int types
-        // search for '.' and if it exists ==> it's a double
-        char* cont = strchr(pop_node->token.value.s, '.');
-        if(!cont) {
-          ls_var_set_s32_value(&temp_var, (s32)val);
-        } else {
-          ls_var_set_double_value(&temp_var, val);
+      if(pop_node->type == ls_node_type_function_call) {
+        temp_var = ls_exec_function_call_statement(exec, pop_node);
+      } else {
+        if(tt == ls_token_type_number) {
+          double val = atof(pop_node->token.value.s);
+          // check if it's an integer ==> TODO: all int types
+          // search for '.' and if it exists ==> it's a double
+          char* cont = strchr(pop_node->token.value.s, '.');
+          if(!cont) {
+            ls_var_set_s32_value(&temp_var, (s32)val);
+          } else {
+            ls_var_set_double_value(&temp_var, val);
+          }
+        } else if(tt == ls_token_type_string) {
+          ls_var_set_string_value(&temp_var, pop_node->token.value.s);
+        } else if(tt == ls_token_type_word) {
+          // word
+          if(exec->local_vars) {
+            // get local variable first
+            list_var = ls_var_list_get_var_by_name(exec->local_vars, 
+              pop_node->token.value.s);
+            if(!list_var) {
+              // get global variable
+              list_var = ls_var_list_get_var_by_name(exec->global_vars, 
+                pop_node->token.value.s);
+            }
+          } else {
+            // get global variable
+            list_var = ls_var_list_get_var_by_name(exec->global_vars, 
+              pop_node->token.value.s);
+          }
+          if(list_var) {
+            ls_var_set_reference_value(&temp_var, list_var);
+          } else {
+            // create var
+            ls_var_create(&temp_var);
+            ls_var_set_name(&temp_var, pop_node->token.value.s);
+            if(exec->local_vars) {
+              list_var = ls_var_list_add_var(exec->local_vars, &temp_var);
+            } else {
+              list_var = ls_var_list_add_var(exec->global_vars, &temp_var);
+            }
+            ls_var_create(&temp_var);
+            ls_var_set_reference_value(&temp_var, list_var);
+          }
         }
       }
       ls_var_stack_push(&var_stack, &temp_var);
@@ -103,10 +146,9 @@ static struct ls_var_t ls_exec_expr_stack(struct ls_exec_t *exec,
         right = ls_var_stack_pop(&var_stack);
         left = ls_var_stack_pop(&var_stack);
 
-        /*printf("L: "); ls_exec_debug_print_var(&left);
-        printf("R: "); ls_exec_debug_print_var(&right);*/
-
-        if(tt == ls_token_type_plus) {
+        if(tt == ls_token_type_equal) {
+          res = ls_var_operator_equal(&left, &right);
+        } else if(tt == ls_token_type_plus) {
           res = ls_var_operator_add(&left, &right);
         } else if(tt == ls_token_type_minus) {
           res = ls_var_operator_sub(&left, &right);
@@ -137,7 +179,10 @@ static struct ls_var_t ls_exec_expr_stack(struct ls_exec_t *exec,
           res = ls_var_operator_obj(&left, &right);
         }
         ls_var_delete(&left);
-        ls_var_delete(&right);
+        if(tt != ls_token_type_equal) {
+          // when var is assigned ==> don't copy the variable, just assign void*
+          ls_var_delete(&right);
+        }
 
         ls_var_stack_push(&var_stack, &res);
 
@@ -146,7 +191,7 @@ static struct ls_var_t ls_exec_expr_stack(struct ls_exec_t *exec,
       }
       current_node = NULL;
     }
-  }  
+  }
 
   ret_var = ls_var_stack_pop(&var_stack);
 
@@ -156,11 +201,6 @@ static struct ls_var_t ls_exec_expr_stack(struct ls_exec_t *exec,
   ls_var_stack_delete(&var_stack);
   return ret_var;
 }
-
-static struct ls_var_t ls_exec_expr_recursion(struct ls_exec_t *, 
-  struct ls_node_t *);
-struct ls_var_t ls_exec_function_call_statement(struct ls_exec_t *, 
-  struct ls_node_t *);
 
 struct ls_var_t ls_exec_expr_recursion(struct ls_exec_t *exec, 
   struct ls_node_t *node) {
@@ -365,56 +405,6 @@ static void ls_exec_assign_statement(struct ls_exec_t *exec,
 
   ls_node_stack_delete(&node_stack);*/
 
-  /*struct ls_node_stack_t node_stack;
-  struct ls_u8_stack_t bool_stack;
-  struct ls_var_t temp_var;
-  struct ls_node_t *current_node = node->children[1], *pop_node = NULL, *left = NULL, *right = NULL;
-  // needs to be precounted
-  ls_node_stack_create(&node_stack, 20);
-  ls_u8_stack_create(&bool_stack, 20);
-  u8 pick = 0;
-
-  while(current_node || node_stack.counter) {
-    while(current_node) {
-      ls_node_stack_push(&node_stack, current_node);
-      if(current_node->children) {
-        if(current_node->children[0]->token.type == ls_token_type_number && current_node->children[1]->token.type != ls_token_type_number) {
-          pick = 1;
-        } else if(current_node->children[1]->token.type == ls_token_type_number && current_node->children[0]->token.type != ls_token_type_number) {
-          pick = 0;
-        } else if(current_node->children[0]->token.type != ls_token_type_number && current_node->children[1]->token.type != ls_token_type_number) {
-          printf("Diff: %d - %d\n", current_node->children[0]->token.type , current_node->children[1]->token.type);
-          pick = current_node->children[0]->token.type > current_node->children[1]->token.type;
-        }
-        current_node = current_node->children[pick];
-        ls_u8_stack_push(&bool_stack, pick);
-        //printf("Pushed %d\n", pick);
-        //printf("Pick = %d\n", pick);
-      } else {
-        current_node = NULL;
-      }
-    }
-    pop_node = ls_node_stack_pop(&node_stack);
-    
-    if(LS_IS_CHAR_TOKEN(pop_node->token.type)) {
-      printf("Char: %c\n", pop_node->token.value.c);
-    } else {
-      printf("String: %s\n", pop_node->token.value.s);
-    }
-    if(pop_node->children) {
-      pick = ls_u8_stack_pop(&bool_stack);
-      //printf("Popped %d\n", pick);
-      if(pick) {
-        current_node = pop_node->children[0];
-      } else {
-        current_node = pop_node->children[1];
-      }
-    } else {
-      current_node = NULL;
-    }
-  }
-  ls_node_stack_delete(&node_stack);*/
-
   // add support for left and right comma interpreting ==> a, b = 20, 30;
   char *var_name = node->children[0]->token.value.s;
   struct ls_var_t *ret_var = NULL, expr_value;
@@ -496,8 +486,12 @@ void ls_exec_run(struct ls_exec_t *exec) {
   while(node || node_stack.count) {
     while(node) {
       switch(node->type) {
+        case ls_node_type_expression:
+          ret_var = ls_exec_expr_stack(exec, node);
+          ls_var_delete(&ret_var);
+          break;
         case ls_node_type_assign_statement:
-          ls_exec_assign_statement(exec, node);
+          //ls_exec_assign_statement(exec, node);
           break;
         case ls_node_type_function_definition:
           ls_exec_function_definition_statement(exec, node);

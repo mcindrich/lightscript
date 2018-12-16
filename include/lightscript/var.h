@@ -87,6 +87,14 @@ struct ls_var_t ls_var_operator_ge(struct ls_var_t *, struct ls_var_t *);
 struct ls_var_t ls_var_operator_eq(struct ls_var_t *, struct ls_var_t *);
 struct ls_var_t ls_var_operator_ne(struct ls_var_t *, struct ls_var_t *);
 
+struct ls_var_t ls_var_operator_equal(struct ls_var_t *, struct ls_var_t *);
+struct ls_var_t ls_var_operator_pequal(struct ls_var_t *, struct ls_var_t *);
+struct ls_var_t ls_var_operator_mequal(struct ls_var_t *, struct ls_var_t *);
+struct ls_var_t ls_var_operator_dequal(struct ls_var_t *, struct ls_var_t *);
+struct ls_var_t ls_var_operator_oequal(struct ls_var_t *, struct ls_var_t *);
+struct ls_var_t ls_var_operator_aequal(struct ls_var_t *, struct ls_var_t *);
+
+
 struct ls_var_t ls_var_operator_log_or(struct ls_var_t *, struct ls_var_t *);
 struct ls_var_t ls_var_operator_log_and(struct ls_var_t *, struct ls_var_t *);
 struct ls_var_t ls_var_operator_or(struct ls_var_t *, struct ls_var_t *);

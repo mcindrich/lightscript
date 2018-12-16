@@ -8,7 +8,7 @@ void ls_node_create(struct ls_node_t **node, size_t cc,
   (*node)->next = NULL;
   (*node)->children_count = cc;
 	if(cc) {
-		(*node)->children = malloc(sizeof(struct ls_node_t *) * cc);
+		(*node)->children = calloc(cc, sizeof(struct ls_node_t *));
 	}
   (*node)->token = *tok;
 	(*node)->type = type;

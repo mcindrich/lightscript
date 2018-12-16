@@ -257,10 +257,25 @@ struct ls_array_t *ls_var_get_array_value(struct ls_var_t *var) {
 
 // --------------------------------------------------------------
 
+static void ls_var_check_operator_reference(struct ls_var_t **l, 
+  struct ls_var_t **r) {
+  // check if its a variable ==> all variables are stored as references aka 
+  //          pointers to other vars
+  // ==> convert them into normal variables and continue with the operations
+  while(LS_VAR_IS_REFERENCE((*l))) {
+    *l = ls_var_get_reference_value(*l);
+  }
+  while(LS_VAR_IS_REFERENCE((*r))) {
+    *r = ls_var_get_reference_value(*r);
+  }
+}
+
 // operators and assign
 struct ls_var_t ls_var_operator_add(struct ls_var_t *l, struct ls_var_t *r) {
   struct ls_var_t new;
   ls_var_create(&new);
+  ls_var_check_operator_reference(&l, &r);
+  
   if(LS_VAR_IS_INT(l) && LS_VAR_IS_INT(r)) {
     ls_var_set_s32_value(&new, ls_var_get_s32_value(l) + 
       ls_var_get_s32_value(r));
@@ -287,6 +302,8 @@ struct ls_var_t ls_var_operator_add(struct ls_var_t *l, struct ls_var_t *r) {
 struct ls_var_t ls_var_operator_sub(struct ls_var_t *l, struct ls_var_t *r) {
   struct ls_var_t new;
   ls_var_create(&new);
+  ls_var_check_operator_reference(&l, &r);
+
   if(LS_VAR_IS_INT(l) && LS_VAR_IS_INT(r)) {
     // int int ==> for now only s32
     ls_var_set_s32_value(&new, ls_var_get_s32_value(l) - 
@@ -312,6 +329,8 @@ struct ls_var_t ls_var_operator_sub(struct ls_var_t *l, struct ls_var_t *r) {
 struct ls_var_t ls_var_operator_mul(struct ls_var_t *l, struct ls_var_t *r) {
   struct ls_var_t new;
   ls_var_create(&new);
+  ls_var_check_operator_reference(&l, &r);
+  
   if(LS_VAR_IS_INT(l) && LS_VAR_IS_INT(r)) {
     // int int ==> for now only s32
     ls_var_set_s32_value(&new, ls_var_get_s32_value(l) * 
@@ -345,6 +364,8 @@ struct ls_var_t ls_var_operator_mul(struct ls_var_t *l, struct ls_var_t *r) {
 struct ls_var_t ls_var_operator_div(struct ls_var_t *l, struct ls_var_t *r) {
   struct ls_var_t new;
   ls_var_create(&new);
+  ls_var_check_operator_reference(&l, &r);
+
   if(LS_VAR_IS_INT(l) && LS_VAR_IS_INT(r)) {
     // int int ==> for now only s32
     ls_var_set_s32_value(&new, ls_var_get_s32_value(l) / 
@@ -370,6 +391,8 @@ struct ls_var_t ls_var_operator_div(struct ls_var_t *l, struct ls_var_t *r) {
 struct ls_var_t ls_var_operator_mod(struct ls_var_t *l, struct ls_var_t *r) {
   struct ls_var_t new;
   ls_var_create(&new);
+  ls_var_check_operator_reference(&l, &r);
+
   if(LS_VAR_IS_INT(l) && LS_VAR_IS_INT(r)) {
     // int int ==> for now only s32
     ls_var_set_s32_value(&new, ls_var_get_s32_value(l) % 
@@ -389,6 +412,8 @@ struct ls_var_t ls_var_operator_obj(struct ls_var_t *l, struct ls_var_t *r) {
 struct ls_var_t ls_var_operator_lt(struct ls_var_t *l, struct ls_var_t *r) {
   struct ls_var_t new;
   ls_var_create(&new);
+  ls_var_check_operator_reference(&l, &r);
+
   if(LS_VAR_IS_INT(l) && LS_VAR_IS_INT(r)) {
     // int int ==> for now only s32
     if(ls_var_get_s32_value(l) < ls_var_get_s32_value(r)) {
@@ -433,6 +458,8 @@ struct ls_var_t ls_var_operator_lt(struct ls_var_t *l, struct ls_var_t *r) {
 struct ls_var_t ls_var_operator_le(struct ls_var_t *l, struct ls_var_t *r) {
   struct ls_var_t new;
   ls_var_create(&new);
+  ls_var_check_operator_reference(&l, &r);
+
   if(LS_VAR_IS_INT(l) && LS_VAR_IS_INT(r)) {
     // int int ==> for now only s32
     if(ls_var_get_s32_value(l) <= ls_var_get_s32_value(r)) {
@@ -477,6 +504,8 @@ struct ls_var_t ls_var_operator_le(struct ls_var_t *l, struct ls_var_t *r) {
 struct ls_var_t ls_var_operator_gt(struct ls_var_t *l, struct ls_var_t *r) {
   struct ls_var_t new;
   ls_var_create(&new);
+  ls_var_check_operator_reference(&l, &r);
+
   if(LS_VAR_IS_INT(l) && LS_VAR_IS_INT(r)) {
     // int int ==> for now only s32
     if(ls_var_get_s32_value(l) > ls_var_get_s32_value(r)) {
@@ -521,6 +550,8 @@ struct ls_var_t ls_var_operator_gt(struct ls_var_t *l, struct ls_var_t *r) {
 struct ls_var_t ls_var_operator_ge(struct ls_var_t *l, struct ls_var_t *r) {
   struct ls_var_t new;
   ls_var_create(&new);
+  ls_var_check_operator_reference(&l, &r);
+
   if(LS_VAR_IS_INT(l) && LS_VAR_IS_INT(r)) {
     // int int ==> for now only s32
     if(ls_var_get_s32_value(l) >= ls_var_get_s32_value(r)) {
@@ -565,6 +596,8 @@ struct ls_var_t ls_var_operator_ge(struct ls_var_t *l, struct ls_var_t *r) {
 struct ls_var_t ls_var_operator_eq(struct ls_var_t *l, struct ls_var_t *r) {
   struct ls_var_t new;
   ls_var_create(&new);
+  ls_var_check_operator_reference(&l, &r);
+  
   if(LS_VAR_IS_INT(l) && LS_VAR_IS_INT(r)) {
     // int int ==> for now only s32
     if(ls_var_get_s32_value(l) == ls_var_get_s32_value(r)) {
@@ -609,6 +642,8 @@ struct ls_var_t ls_var_operator_eq(struct ls_var_t *l, struct ls_var_t *r) {
 struct ls_var_t ls_var_operator_ne(struct ls_var_t *l, struct ls_var_t *r) {
   struct ls_var_t new;
   ls_var_create(&new);
+  ls_var_check_operator_reference(&l, &r);
+  
   if(LS_VAR_IS_INT(l) && LS_VAR_IS_INT(r)) {
     // int int ==> for now only s32
     if(ls_var_get_s32_value(l) != ls_var_get_s32_value(r)) {
@@ -647,6 +682,50 @@ struct ls_var_t ls_var_operator_ne(struct ls_var_t *l, struct ls_var_t *r) {
   } else {
     // err
   }
+  return new;
+}
+
+struct ls_var_t ls_var_operator_equal(struct ls_var_t *l, struct ls_var_t *r) {
+  struct ls_var_t new;
+  struct ls_var_t *ref = ls_var_get_reference_value(l);
+  ls_var_create(&new);
+  // if the var already has a value ==> delete it
+  ls_var_delete_value(ref);
+
+  ls_var_set_reference_value(&new, ref);
+
+  ref->value = r->value;
+  ref->type = r->type;
+  return new;
+}
+
+struct ls_var_t ls_var_operator_pequal(struct ls_var_t *l, struct ls_var_t *r) {
+  struct ls_var_t new;
+  ls_var_create(&new);
+  return new;
+}
+
+struct ls_var_t ls_var_operator_mequal(struct ls_var_t *l, struct ls_var_t *r) {
+  struct ls_var_t new;
+  ls_var_create(&new);
+  return new;
+}
+
+struct ls_var_t ls_var_operator_dequal(struct ls_var_t *l, struct ls_var_t *r) {
+  struct ls_var_t new;
+  ls_var_create(&new);
+  return new;
+}
+
+struct ls_var_t ls_var_operator_oequal(struct ls_var_t *l, struct ls_var_t *r) {
+  struct ls_var_t new;
+  ls_var_create(&new);
+  return new;
+}
+
+struct ls_var_t ls_var_operator_aequal(struct ls_var_t *l, struct ls_var_t *r) {
+  struct ls_var_t new;
+  ls_var_create(&new);
   return new;
 }
 

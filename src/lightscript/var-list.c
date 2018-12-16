@@ -10,7 +10,7 @@ void ls_var_list_create(struct ls_var_list_t *vl, size_t init_size) {
   vl->size = 0;
 }
 
-void ls_var_list_add_var(struct ls_var_list_t *vl, struct ls_var_t *var) {
+struct ls_var_t *ls_var_list_add_var(struct ls_var_list_t *vl, struct ls_var_t *var) {
   if(vl->count == vl->size) {
     // update size of the list
     vl->size += VAR_CHUNK_ALLOC_SIZE;
@@ -19,6 +19,7 @@ void ls_var_list_add_var(struct ls_var_list_t *vl, struct ls_var_t *var) {
   }
   vl->vars[vl->count] = *var;
   ++vl->count;
+  return &vl->vars[vl->count-1];
 }
 
 void ls_var_list_debug_print(struct ls_var_list_t *vl) {

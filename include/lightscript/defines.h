@@ -7,7 +7,7 @@
 //#define PARSER_DEBUGGING
 
 // enable for testing in main.c
-//#define MAIN_DEBUGGING
+// #define MAIN_DEBUGGING
 
 #define LS_IS_NUMBER(str) (str[0] >= '0' && str[0] <= '9')
 
@@ -34,15 +34,16 @@ type == ls_token_type_colon ||\
 type == ls_token_type_power ||\
 type == ls_token_type_log_or ||\
 type == ls_token_type_log_and ||\
-type == ls_token_type_double_colon\
+type == ls_token_type_double_colon ||\
+(type > ls_token_type_assign_ops_start &&\
+type < ls_token_type_assign_ops_end)\
 )
 
 // type != ls_token_type_comma && 
 #define LS_IS_VALID_EXPR_TOKEN(type) ( \
 type != ls_token_type_semicolon && \
 type != ls_token_type_do_keyword && \
-type != ls_token_type_in_keyword && \
-!LS_IS_ASSIGN_OPERATOR(type) \
+type != ls_token_type_in_keyword \
 )
 
 #define LS_IS_CHAR_TOKEN(type) ( \
@@ -96,6 +97,7 @@ c == '|' || c == '!' || c == '<' || c == '>' || c == ':') && next == '=') \
 var->type <= ls_var_type_u64\
 )
 #define LS_VAR_IS_DOUBLE(var) (var->type == ls_var_type_double)
+#define LS_VAR_IS_REFERENCE(var) (var->type == ls_var_type_reference)
 #define LS_VAR_IS_STRING(var) (var->type == ls_var_type_string)
 #define LS_VAR_IS_BOOLEAN(var) (var->type == ls_var_type_boolean)
 

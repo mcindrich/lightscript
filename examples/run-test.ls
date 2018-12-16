@@ -1,3 +1,3 @@
-a = 10 + 3 * 7;
+c = "Hello" * 100000000;
 
-CPrint(a);
+#CPrint(c);
