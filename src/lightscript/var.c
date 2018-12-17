@@ -686,16 +686,29 @@ struct ls_var_t ls_var_operator_ne(struct ls_var_t *l, struct ls_var_t *r) {
 }
 
 struct ls_var_t ls_var_operator_equal(struct ls_var_t *l, struct ls_var_t *r) {
-  struct ls_var_t new;
-  struct ls_var_t *ref = ls_var_get_reference_value(l);
+  struct ls_var_t new; // return value of the equal expression
+  struct ls_var_t *ref = ls_var_get_reference_value(l), *last = NULL;
   ls_var_create(&new);
+
   // if the var already has a value ==> delete it
-  ls_var_delete_value(ref);
+
+  while(LS_VAR_IS_REFERENCE(r)) {
+    last = r;
+    r = ls_var_get_reference_value(r);
+  }
 
   ls_var_set_reference_value(&new, ref);
 
-  ref->value = r->value;
-  ref->type = r->type;
+  if(last) {
+    if(ref->value != ls_var_get_reference_value(last)->value) {
+      ls_var_delete_value(ref);
+      ls_var_set_reference_value(ref, ls_var_get_reference_value(last));
+    }
+  } else {
+    ls_var_delete_value(ref);
+    ref->value = r->value;
+    ref->type = r->type;
+  }
   return new;
 }
 

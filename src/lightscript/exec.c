@@ -179,8 +179,9 @@ struct ls_var_t ls_exec_expr_stack(struct ls_exec_t *exec,
           res = ls_var_operator_obj(&left, &right);
         }
         ls_var_delete(&left);
-        if(tt != ls_token_type_equal) {
+        if(tt != ls_token_type_equal || LS_VAR_IS_REFERENCE((&right))) {
           // when var is assigned ==> don't copy the variable, just assign void*
+          // unless it's a reference ==> then just delete it
           ls_var_delete(&right);
         }
 
