@@ -124,7 +124,7 @@ struct ls_node_t *ls_parse_expression(struct ls_parser_t *parser, size_t *pos,
   struct ls_node_stack_t expr_stack, second_stack;
   struct ls_token_stack_t op_stack;
   struct ls_node_t *tnode0 = NULL, *tnode1 = NULL, *tnode2 = NULL, 
-    *function_node = NULL, *current_child = NULL;
+    *pop_node = NULL, *current_child = NULL;
   struct ls_token_t temp_token;
   size_t mss = 0, op_mss = 0, i = *pos, args_count;
 
@@ -158,7 +158,8 @@ struct ls_node_t *ls_parse_expression(struct ls_parser_t *parser, size_t *pos,
         ls_node_stack_push(&expr_stack, tnode2);
       }
       ls_token_stack_push(&op_stack, &parser->tokens[i]);
-    } else if(parser->tokens[i].type == ls_token_type_lparenth) {
+    } else if(parser->tokens[i].type == ls_token_type_lparenth || 
+      parser->tokens[i].type == ls_token_type_lbracket) {
       // printf("Pushed lparenth\n");
       ls_token_stack_push(&op_stack, &parser->tokens[i]);
     } else if(parser->tokens[i].type == ls_token_type_number || 
@@ -180,6 +181,14 @@ struct ls_node_t *ls_parse_expression(struct ls_parser_t *parser, size_t *pos,
         }
       } else if(parser->tokens[i+1].type == ls_token_type_lbracket) {
         // array node
+        ls_node_create(&tnode0, 1, ls_node_type_array_element, 
+          &parser->tokens[i]);
+        ls_node_stack_push(&second_stack, tnode0);
+        if(parser->tokens[i+2].type == ls_token_type_rbracket) {
+          // error ==> empty array node
+        } else {
+          args_count = 1;
+        }
       } else {
         ls_node_create(&tnode0, 0, ls_node_type_expression, &parser->tokens[i]);
         ls_node_stack_push(&expr_stack, tnode0);
@@ -213,11 +222,32 @@ struct ls_node_t *ls_parse_expression(struct ls_parser_t *parser, size_t *pos,
       }
       if(second_stack.count) {
         // it's a function
-        function_node = ls_node_stack_pop(&second_stack);
+        pop_node = ls_node_stack_pop(&second_stack);
         if(args_count) {
-          function_node->children[0] = ls_node_stack_pop(&expr_stack);
+          pop_node->children[0] = ls_node_stack_pop(&expr_stack);
         }
-        ls_node_stack_push(&expr_stack, function_node);
+        ls_node_stack_push(&expr_stack, pop_node);
+      }
+      ls_token_stack_pop(&op_stack);
+    } else if(parser->tokens[i].type == ls_token_type_rbracket) {
+      while(ls_token_stack_top(&op_stack) && ls_token_stack_top(&op_stack)->type != ls_token_type_lbracket) {
+        temp_token = ls_token_stack_pop(&op_stack);
+        tnode0 = ls_node_stack_pop(&expr_stack);
+        tnode1 = ls_node_stack_pop(&expr_stack);
+
+        //printf("New Node: %c: %s %s\n", temp_token.value.c, tnode0->token.value.s, tnode1->token.value.s);
+        ls_node_create(&tnode2, 2, ls_node_type_expression, &temp_token);
+        tnode2->children[0] = tnode1;
+        tnode2->children[1] = tnode0;
+        ls_node_stack_push(&expr_stack, tnode2);
+      }
+      if(second_stack.count) {
+        // it's an array element node
+        pop_node = ls_node_stack_pop(&second_stack);
+        if(args_count) {
+          pop_node->children[0] = ls_node_stack_pop(&expr_stack);
+        }
+        ls_node_stack_push(&expr_stack, pop_node);
       }
       ls_token_stack_pop(&op_stack);
     }
