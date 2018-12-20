@@ -27,6 +27,14 @@ struct ls_node_t *ls_node_stack_pop(struct ls_node_stack_t *stack) {
   return node_ptr;
 }
 
+struct ls_node_t *ls_node_stack_top(struct ls_node_stack_t *stack) {
+  struct ls_node_t* node_ptr = NULL;
+  if(stack->count > 0) {
+    node_ptr = stack->nodes[stack->count - 1];
+  }
+  return node_ptr;
+}
+
 void ls_node_stack_delete(struct ls_node_stack_t *stack) {
   if(stack->size) {
     free(stack->nodes);

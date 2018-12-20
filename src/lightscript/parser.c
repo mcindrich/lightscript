@@ -158,10 +158,19 @@ struct ls_node_t *ls_parse_expression(struct ls_parser_t *parser, size_t *pos,
         ls_node_stack_push(&expr_stack, tnode2);
       }
       ls_token_stack_push(&op_stack, &parser->tokens[i]);
-    } else if(parser->tokens[i].type == ls_token_type_lparenth || 
-      parser->tokens[i].type == ls_token_type_lbracket) {
+    } else if(parser->tokens[i].type == ls_token_type_lparenth) {
       // printf("Pushed lparenth\n");
       ls_token_stack_push(&op_stack, &parser->tokens[i]);
+    } else if(parser->tokens[i].type == ls_token_type_lbracket) {
+      ls_token_stack_push(&op_stack, &parser->tokens[i]);
+      ls_node_create(&tnode0, 1, ls_node_type_array, 
+          &parser->tokens[i]);
+      ls_node_stack_push(&second_stack, tnode0);
+    if(parser->tokens[i+1].type == ls_token_type_rbracket) {
+        args_count = 0;
+      } else {
+        args_count = 1;
+      }
     } else if(parser->tokens[i].type == ls_token_type_number || 
       parser->tokens[i].type == ls_token_type_string) {
       ls_node_create(&tnode0, 0, ls_node_type_expression, &parser->tokens[i]);
@@ -242,12 +251,21 @@ struct ls_node_t *ls_parse_expression(struct ls_parser_t *parser, size_t *pos,
         ls_node_stack_push(&expr_stack, tnode2);
       }
       if(second_stack.count) {
-        // it's an array element node
+        // it's an array node
         pop_node = ls_node_stack_pop(&second_stack);
-        if(args_count) {
+        if(pop_node->type == ls_node_type_array && args_count) {
           pop_node->children[0] = ls_node_stack_pop(&expr_stack);
+          ls_node_stack_push(&expr_stack, pop_node);
+
+          // check also for element node ==> arr[100]
+          if(ls_node_stack_top(&second_stack) && 
+            ls_node_stack_top(&second_stack)->type == 
+            ls_node_type_array_element) {
+            pop_node = ls_node_stack_pop(&second_stack);
+            pop_node->children[0] = ls_node_stack_pop(&expr_stack);
+            ls_node_stack_push(&expr_stack, pop_node);
+          }
         }
-        ls_node_stack_push(&expr_stack, pop_node);
       }
       ls_token_stack_pop(&op_stack);
     }

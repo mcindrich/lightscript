@@ -12,6 +12,7 @@ struct ls_node_stack_t {
 void ls_node_stack_create(struct ls_node_stack_t *, size_t );
 void ls_node_stack_push(struct ls_node_stack_t *, struct ls_node_t *);
 struct ls_node_t *ls_node_stack_pop(struct ls_node_stack_t *);
+struct ls_node_t *ls_node_stack_top(struct ls_node_stack_t *);
 void ls_node_stack_delete(struct ls_node_stack_t *);
 
 #endif
