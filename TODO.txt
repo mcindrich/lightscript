@@ -1,4 +1,3 @@
-- add arrays ==> parse '[]' as regular parenthesis and add array nodes
 - for statements ==> iteration with arrays
 - add stack for execution so the recursion won't be necessary
 - printing stack trace of errors by popping everything from exec stack

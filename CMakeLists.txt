@@ -11,3 +11,7 @@ set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
 file(GLOB SOURCE_FILES "./src/lightscript/*.c")
 
 add_executable(lightscript ${SOURCE_FILES} "./src/main.c")
+
+if (UNIX)
+    target_link_libraries(lightscript m)
+endif (UNIX)
