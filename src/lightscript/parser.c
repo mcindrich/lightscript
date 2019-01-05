@@ -146,8 +146,7 @@ struct ls_node_t *ls_parse_expression(struct ls_parser_t *parser, size_t *pos,
   ls_node_stack_create(&arr_stack, mss);
 
   for(; i < parser->token_count && 
-    (LS_IS_VALID_EXPR_TOKEN(parser->tokens[i].type) || func_stack.count); 
-    ++i) {
+    LS_IS_VALID_EXPR_TOKEN(parser->tokens[i].type); ++i) {
     //printf("TOK: %d\n", parser->tokens[i].type);
     if(parser->tokens[i].type == ls_token_type_comma) {
       while(ls_token_stack_top(&op_stack) && 

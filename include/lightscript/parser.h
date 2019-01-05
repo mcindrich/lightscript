@@ -5,7 +5,6 @@
 #include <lightscript/node-stack.h>
 
 struct ls_parser_t {
-  struct ls_lexer_t lexer;
   struct ls_node_t *root_node;
   struct ls_node_t **current_node;
   struct ls_node_t **next_node;
