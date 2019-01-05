@@ -74,23 +74,26 @@ struct ls_var_t ls_exec_expr_stack(struct ls_exec_t *exec,
   while(current_node || node_stack.count) {
     while(current_node) {
       ls_node_stack_push(&node_stack, current_node);
-      if(current_node->children && 
-        current_node->type != ls_node_type_function_call) {
+      if(LS_IS_VALID_EXPR_NODE(current_node)) {
         ls_node_stack_push(&op_stack, current_node);
       }
-      current_node = current_node->children && current_node->type != ls_node_type_function_call? current_node->children[0] : NULL;
+      current_node = LS_IS_VALID_EXPR_NODE(current_node)? 
+        current_node->children[0] : NULL;
     }
     //printf("Size: %d\n", op_stack.count);
     pop_node = ls_node_stack_pop(&node_stack);
     tt = pop_node->token.type;
 
-    if(pop_node->children && pop_node->type != ls_node_type_function_call) {
+    if(LS_IS_VALID_EXPR_NODE(pop_node)) {
       // operator ==> switch side
       current_node = pop_node->children[1];
     } else {
       // operand
       if(pop_node->type == ls_node_type_function_call) {
         temp_var = ls_exec_function_call_statement(exec, pop_node);
+      } else if(pop_node->type == ls_node_type_array) {
+        // parse array and set it to the temp variable
+        ls_var_create(&temp_var);
       } else {
         if(tt == ls_token_type_number) {
           double val = atof(pop_node->token.value.s);
@@ -364,6 +367,14 @@ struct ls_var_t ls_exec_function_call_statement(struct ls_exec_t *exec,
   }
   ls_var_list_delete(&args);
   return ret_var;
+}
+
+struct ls_var_t ls_exec_array_node(struct ls_exec_t *exec, 
+  struct ls_node_t *node) {
+  struct ls_var_t arr_var;
+
+  
+  return arr_var;
 }
 
 static void ls_exec_assign_statement(struct ls_exec_t *exec, 

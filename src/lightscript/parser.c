@@ -1,5 +1,6 @@
 #include <lightscript/parser.h>
 #include <lightscript/token-stack.h>
+#include <lightscript/typedefs.h>
 #include <stdio.h>
 #include <stdlib.h>
 
@@ -121,12 +122,15 @@ static void parser_debug_print_tokens(struct ls_parser_t *parser) {
 
 struct ls_node_t *ls_parse_expression(struct ls_parser_t *parser, size_t *pos, 
   struct ls_error_t *err) {
-  struct ls_node_stack_t expr_stack, second_stack;
+  struct ls_node_stack_t expr_stack, func_stack, arr_stack;
   struct ls_token_stack_t op_stack;
   struct ls_node_t *tnode0 = NULL, *tnode1 = NULL, *tnode2 = NULL, 
     *pop_node = NULL, *current_child = NULL;
   struct ls_token_t temp_token;
-  size_t mss = 0, op_mss = 0, i = *pos, args_count;
+  size_t mss = 0, op_mss = 0, i = *pos, args_count, arr_pos = 0, func_pos = 0;
+
+  boolean *arr_args = (boolean *) calloc(100, sizeof(boolean));
+  boolean *func_args = (boolean *) calloc(100, sizeof(boolean));
 
   for(; *pos < parser->token_count &&
     LS_IS_VALID_EXPR_TOKEN(parser->tokens[*pos].type); (*pos) += 1, ++mss) {
@@ -138,11 +142,12 @@ struct ls_node_t *ls_parse_expression(struct ls_parser_t *parser, size_t *pos,
   // allocate with max size
   ls_node_stack_create(&expr_stack, mss);
   // second stack for functions and arrays so no recursion is called ==> faster
-  ls_node_stack_create(&second_stack, mss);
+  ls_node_stack_create(&func_stack, mss);
+  ls_node_stack_create(&arr_stack, mss);
 
   for(; i < parser->token_count && 
-    (LS_IS_VALID_EXPR_TOKEN(parser->tokens[i].type) || second_stack.count); 
-      ++i) {
+    (LS_IS_VALID_EXPR_TOKEN(parser->tokens[i].type) || func_stack.count); 
+    ++i) {
     //printf("TOK: %d\n", parser->tokens[i].type);
     if(parser->tokens[i].type == ls_token_type_comma) {
       while(ls_token_stack_top(&op_stack) && 
@@ -165,12 +170,13 @@ struct ls_node_t *ls_parse_expression(struct ls_parser_t *parser, size_t *pos,
       ls_token_stack_push(&op_stack, &parser->tokens[i]);
       ls_node_create(&tnode0, 1, ls_node_type_array, 
           &parser->tokens[i]);
-      ls_node_stack_push(&second_stack, tnode0);
-    if(parser->tokens[i+1].type == ls_token_type_rbracket) {
-        args_count = 0;
+      ls_node_stack_push(&arr_stack, tnode0);
+      if(parser->tokens[i+1].type == ls_token_type_rbracket) {
+        arr_args[arr_pos] = 0;
       } else {
-        args_count = 1;
+        arr_args[arr_pos] = 1;
       }
+      ++arr_pos;
     } else if(parser->tokens[i].type == ls_token_type_number || 
       parser->tokens[i].type == ls_token_type_string) {
       ls_node_create(&tnode0, 0, ls_node_type_expression, &parser->tokens[i]);
@@ -182,22 +188,25 @@ struct ls_node_t *ls_parse_expression(struct ls_parser_t *parser, size_t *pos,
         // create function node and push it to the second stack
         ls_node_create(&tnode0, 1, ls_node_type_function_call, 
           &parser->tokens[i]);
-        ls_node_stack_push(&second_stack, tnode0);
+        ls_node_stack_push(&func_stack, tnode0);
         if(parser->tokens[i+2].type == ls_token_type_rparenth) {
-          args_count = 0;
+          func_args[func_pos] = 0;
         } else {
-          args_count = 1;
+          func_args[func_pos] = 1;
         }
+        ++func_pos;
       } else if(parser->tokens[i+1].type == ls_token_type_lbracket) {
         // array node
         ls_node_create(&tnode0, 1, ls_node_type_array_element, 
           &parser->tokens[i]);
-        ls_node_stack_push(&second_stack, tnode0);
+        ls_node_stack_push(&arr_stack, tnode0);
         if(parser->tokens[i+2].type == ls_token_type_rbracket) {
-          // error ==> empty array node
+          // empty array node
+          arr_args[arr_pos] = 0;
         } else {
-          args_count = 1;
+          arr_args[arr_pos] = 1;
         }
+        ++arr_pos;
       } else {
         ls_node_create(&tnode0, 0, ls_node_type_expression, &parser->tokens[i]);
         ls_node_stack_push(&expr_stack, tnode0);
@@ -229,10 +238,10 @@ struct ls_node_t *ls_parse_expression(struct ls_parser_t *parser, size_t *pos,
         tnode2->children[1] = tnode0;
         ls_node_stack_push(&expr_stack, tnode2);
       }
-      if(second_stack.count) {
+      if(func_stack.count) {
         // it's a function
-        pop_node = ls_node_stack_pop(&second_stack);
-        if(args_count) {
+        pop_node = ls_node_stack_pop(&func_stack);
+        if(func_args[--func_pos]) {
           pop_node->children[0] = ls_node_stack_pop(&expr_stack);
         }
         ls_node_stack_push(&expr_stack, pop_node);
@@ -250,18 +259,20 @@ struct ls_node_t *ls_parse_expression(struct ls_parser_t *parser, size_t *pos,
         tnode2->children[1] = tnode0;
         ls_node_stack_push(&expr_stack, tnode2);
       }
-      if(second_stack.count) {
+      if(arr_stack.count) {
         // it's an array node
-        pop_node = ls_node_stack_pop(&second_stack);
-        if(pop_node->type == ls_node_type_array && args_count) {
-          pop_node->children[0] = ls_node_stack_pop(&expr_stack);
+        pop_node = ls_node_stack_pop(&arr_stack);
+        if(pop_node->type == ls_node_type_array) {
+          if(arr_args[--arr_pos]) {
+            pop_node->children[0] = ls_node_stack_pop(&expr_stack);
+          }
           ls_node_stack_push(&expr_stack, pop_node);
 
           // check also for element node ==> arr[100]
-          if(ls_node_stack_top(&second_stack) && 
-            ls_node_stack_top(&second_stack)->type == 
+          if(ls_node_stack_top(&arr_stack) && 
+            ls_node_stack_top(&arr_stack)->type == 
             ls_node_type_array_element) {
-            pop_node = ls_node_stack_pop(&second_stack);
+            pop_node = ls_node_stack_pop(&arr_stack);
             pop_node->children[0] = ls_node_stack_pop(&expr_stack);
             ls_node_stack_push(&expr_stack, pop_node);
           }
@@ -290,7 +301,10 @@ struct ls_node_t *ls_parse_expression(struct ls_parser_t *parser, size_t *pos,
 
   ls_token_stack_delete(&op_stack);
   ls_node_stack_delete(&expr_stack);
-  ls_node_stack_delete(&second_stack);
+  ls_node_stack_delete(&func_stack);
+  ls_node_stack_delete(&arr_stack);
+  free(arr_args);
+  free(func_args);
   return root_node;
 }
 

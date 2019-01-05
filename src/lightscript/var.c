@@ -1,9 +1,10 @@
 #include <lightscript/var.h>
+#include <lightscript/function.h>
+#include <lightscript/array.h>
 #include <stddef.h>
 #include <stdlib.h>
 #include <string.h>
 #include <stdio.h>
-#include <lightscript/function.h>
 
 // create
 void ls_var_create(struct ls_var_t *var) {
