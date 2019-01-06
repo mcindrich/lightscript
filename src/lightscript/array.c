@@ -13,7 +13,7 @@ void ls_array_create(struct ls_array_t *arr, size_t size) {
 void ls_array_set_element(struct ls_array_t *arr, size_t pos, 
   struct ls_var_t *var) {
   size_t i;
-  if(pos > arr->size) {
+  if(pos >= arr->size) {
     // reallocate and add little extra space ==> for example using for loop to create an array
     // --> allocate more at once
     arr->vars = (struct ls_var_t *) realloc(arr->vars, sizeof(struct ls_var_t) *
@@ -23,8 +23,15 @@ void ls_array_set_element(struct ls_array_t *arr, size_t pos,
     }
     arr->size = pos + ARRAY_EXTRA_ALLOC_SPACE;
   }
-  
   arr->vars[pos] = *var;
+}
+
+struct ls_var_t *ls_array_get_element(struct ls_array_t *arr, size_t pos) {
+  struct ls_var_t *ret = NULL;
+  if(pos >= 0 && pos < arr->size) {
+    ret = &arr->vars[pos];
+  }
+  return ret;
 }
 
 void ls_array_delete(struct ls_array_t *arr) {

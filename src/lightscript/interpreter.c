@@ -49,7 +49,8 @@ struct ls_var_t ls_c_print_func(struct ls_var_list_t *args) {
         while(LS_VAR_IS_REFERENCE(var)) {
           var = ls_var_get_reference_value(var);
         }
-        printf("Ref '%s' = ", var->name);
+        //printf("Ref '%s' = ", var->name);
+        // stupid but will work for now
         switch(var->type) {
           case ls_var_type_none:
             printf("Nil");

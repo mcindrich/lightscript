@@ -12,6 +12,7 @@ struct ls_array_t {
 
 void ls_array_create(struct ls_array_t *, size_t );
 void ls_array_set_element(struct ls_array_t *, size_t, struct ls_var_t *);
+struct ls_var_t *ls_array_get_element(struct ls_array_t *, size_t);
 void ls_array_delete(struct ls_array_t *);
 
 #endif

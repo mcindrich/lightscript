@@ -41,6 +41,9 @@ void ls_exec_set_return_var(struct ls_exec_t *exec, struct ls_var_t *ret) {
 }
 
 static void ls_exec_debug_print_var(struct ls_var_t *var) {
+  struct ls_array_t *temp_arr;
+  size_t i;
+
   switch(var->type) {
     case ls_var_type_none:
       printf("NONE\n");
@@ -53,6 +56,13 @@ static void ls_exec_debug_print_var(struct ls_var_t *var) {
       break;
     case ls_var_type_string:
       printf("STRING: '%s'\n", ls_var_get_string_value(var));
+      break;
+    case ls_var_type_array:
+      printf("Array: \n");
+      temp_arr = ls_var_get_array_value(var);
+      for(i = 0; i < temp_arr->size; i++) {
+        ls_exec_debug_print_var(&temp_arr->vars[i]);
+      }
       break;
     default:
       printf("OTHER TYPE\n");
@@ -385,40 +395,40 @@ struct ls_var_t ls_exec_array_node(struct ls_exec_t *exec,
   struct ls_array_t arr;
   struct ls_node_stack_t node_stack;
   struct ls_node_t *current_node = node->children[0], *pop_node = NULL, *left = NULL, *right = NULL;
-  // needs to be precounted
+  boolean set = boolean_false;
+  // needs to be precounted ==> TODO
   ls_node_stack_create(&node_stack, 10);
-  u8 cnt = 0;
+  u8 cnt = -1;
 
-  // comma counting ==> functions and arrays
-  
-  while((current_node && current_node->token.type == ls_token_type_comma) || node_stack.count) {
+  // comma counting ==> arrays
+  while(current_node || node_stack.count) {
+    if(!set) {
+      cnt = 0;
+      set = boolean_true;
+    }
     while(current_node && current_node->token.type == ls_token_type_comma) {
       ls_node_stack_push(&node_stack, current_node);
+      ++cnt; // count commas and at the end add one
       if(current_node->children)
         current_node = current_node->children[0];
       else current_node = NULL;
     }
     pop_node = ls_node_stack_pop(&node_stack);
-    left = pop_node->children[0];
-    right = pop_node->children[1];
-    if(left->token.type != ls_token_type_comma) {
-      cnt++;
-    }
-    cnt++;
-    if(pop_node->children)
+    if(pop_node && pop_node->children)
       current_node = pop_node->children[1];
     else current_node = NULL;
   }
+  ++cnt;
 
   // create an array with a stack
   ls_var_create(&arr_var);
   ls_array_create(&arr, cnt);
-  ls_var_set_array_value(&arr_var, &arr);
   if(cnt) {
     node_stack.count = 0; // flush the stack ==> start again
     cnt = 0;
-    current_node = node->children[0], pop_node = NULL, left = NULL, right = NULL;
-    while((current_node && current_node->token.type == ls_token_type_comma) || node_stack.count) {
+    current_node = node->children[0];
+
+    while(current_node || node_stack.count) {
       while(current_node && current_node->token.type == ls_token_type_comma) {
         ls_node_stack_push(&node_stack, current_node);
         if(current_node->children)
@@ -426,119 +436,75 @@ struct ls_var_t ls_exec_array_node(struct ls_exec_t *exec,
         else current_node = NULL;
       }
       pop_node = ls_node_stack_pop(&node_stack);
-      left = pop_node->children[0];
-      right = pop_node->children[1];
-      if(left->token.type != ls_token_type_comma) {
-        temp_var = ls_exec_expr_stack(exec, left);
+      if(pop_node) {
+        left = pop_node->children[0];
+        right = pop_node->children[1];
+        if(left->token.type != ls_token_type_comma) {
+          temp_var = ls_exec_expr_stack(exec, left);
+          ls_array_set_element(&arr, cnt, &temp_var);
+          cnt++;
+          pop_node = NULL;
+        }
+        temp_var = ls_exec_expr_stack(exec, right);
         ls_array_set_element(&arr, cnt, &temp_var);
         cnt++;
+      } else {
+        // needs a fix ==> TODO
+        if(cnt < arr.size) {
+          temp_var = ls_exec_expr_stack(exec, current_node);
+          ls_array_set_element(&arr, cnt, &temp_var);
+        }
       }
-      temp_var = ls_exec_expr_stack(exec, right);
-      ls_array_set_element(&arr, cnt, &temp_var);
-      cnt++;
-      if(pop_node->children)
+      if(pop_node && pop_node->children)
         current_node = pop_node->children[1];
       else current_node = NULL;
     }
   }
-
+  ls_var_set_array_value(&arr_var, &arr);
   ls_node_stack_delete(&node_stack);
   return arr_var;
 }
 
 struct ls_var_t ls_exec_array_element_node(struct ls_exec_t *exec, 
   struct ls_node_t *node) {
-  struct ls_var_t ret_var;
-  return ret_var;
-}
+  struct ls_var_t ret_var, 
+    arr_var = ls_exec_array_node(exec, node->children[0]), *arr_var_ptr = NULL, 
+    *temp_var_ptr = NULL;
+  struct ls_array_t *arr_ptr = NULL, 
+    *arr_pos = ls_var_get_array_value(&arr_var);
+  size_t i;
 
-static void ls_exec_assign_statement(struct ls_exec_t *exec, 
-  struct ls_node_t *node) {
-  // get left side and check if the variable exists and if it doesn't, create it
-  // https://www.geeksforgeeks.org/inorder-tree-traversal-without-recursion/
-  // traversing without recursion ==> speed
-  
-  /*
-  struct ls_node_stack_t node_stack;
-  struct ls_var_t temp_var;
-  struct ls_node_t *current_node = node->children[1]->children[0], *pop_node = NULL, *left = NULL, *right = NULL;
-  // needs to be precounted
-  ls_node_stack_create(&node_stack, 10);
+  ls_var_create(&ret_var);
 
-  u8 cnt = 0;
-
-  // comma counting ==> functions and arrays
-  
-  while((current_node && current_node->token.type == ls_token_type_comma) || node_stack.counter) {
-    while(current_node && current_node->token.type == ls_token_type_comma) {
-      ls_node_stack_push(&node_stack, current_node);
-      if(current_node->children)
-        current_node = current_node->children[0];
-      else current_node = NULL;
-    }
-    pop_node = ls_node_stack_pop(&node_stack);
-    left = pop_node->children[0];
-    right = pop_node->children[1];
-    if(left->token.type != ls_token_type_comma) {
-      cnt++;
-    }
-    cnt++;
-    if(pop_node->children)
-      current_node = pop_node->children[1];
-    else current_node = NULL;
-  }
-
-  printf("Cnt: %d\n", cnt);
-
-  ls_node_stack_delete(&node_stack);*/
-
-  // add support for left and right comma interpreting ==> a, b = 20, 30;
-  char *var_name = node->children[0]->token.value.s;
-  struct ls_var_t *ret_var = NULL, expr_value;
-  ls_var_create(&expr_value);
-  // check if a var exists
+  // get global or local array
   if(exec->local_vars) {
-    // first locals then global
-    ret_var = ls_var_list_get_var_by_name(exec->local_vars, var_name);
-    expr_value = ls_exec_expr_recursion(exec, node->children[1]);
-    if(!ret_var) {
-      ret_var = ls_var_list_get_var_by_name(exec->global_vars, var_name);
-      if(!ret_var) {
-        // create variable and push it to the list
-        ls_var_set_name(&expr_value, var_name);
-        ls_var_list_add_var(exec->local_vars, &expr_value);
-      } else {
-        // there is a global one ==> change that one
-        ls_var_delete_value(ret_var);
-        ret_var->value = expr_value.value;
-        ret_var->type = expr_value.type;
-      }
-    } else {
-      ls_var_delete_value(ret_var);
-      ret_var->value = expr_value.value;
-      ret_var->type = expr_value.type;
-      // change value ==> apply assign operator
+    // get local variable first
+    arr_var_ptr = ls_var_list_get_var_by_name(exec->local_vars, 
+      node->token.value.s);
+    if(!arr_var_ptr) {
+      // get global variable
+      arr_var_ptr = ls_var_list_get_var_by_name(exec->global_vars, 
+        node->token.value.s);
     }
   } else {
-    // just global
-    ret_var = ls_var_list_get_var_by_name(exec->global_vars, var_name);
-    expr_value = ls_exec_expr_stack(exec, node->children[1]);
-
-    if(!ret_var) {
-      // create variable and push it to the list
-      // ls_exec_debug_print_var(&expr_value);
-      ls_var_set_name(&expr_value, var_name);
-      ls_var_list_add_var(exec->global_vars, &expr_value);
-      //ls_exec_debug_print_var(&expr_value);
-      //printf("Value: %s\n", ls_var_get_string_value(&expr_value));
-    } else {
-      // change value ==> apply assign operator
-      ls_var_delete_value(ret_var);
-      ret_var->value = expr_value.value;
-      ret_var->type = expr_value.type;
-    }
+    // get global variable
+    arr_var_ptr = ls_var_list_get_var_by_name(exec->global_vars, 
+      node->token.value.s);
   }
-  
+  if(!arr_var_ptr) {
+  } else {
+    arr_ptr = ls_var_get_array_value(arr_var_ptr);
+  }
+  // for now only one dimension array
+  temp_var_ptr = ls_array_get_element(arr_ptr, ls_var_get_s32_value(&arr_pos->vars[0]));
+  if(!temp_var_ptr) {
+    // out of bounds
+    
+  } else {
+    ls_var_set_reference_value(&ret_var, temp_var_ptr);
+  }
+  ls_var_delete(&arr_var);
+  return ret_var;
 }
 
 void ls_exec_return_statement(struct ls_exec_t *exec, struct ls_node_t *node) {
