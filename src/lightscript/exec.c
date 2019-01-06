@@ -3,9 +3,23 @@
 #include <lightscript/var-stack.h>
 #include <lightscript/defines.h>
 #include <lightscript/function.h>
+#include <lightscript/array.h>
 #include <string.h>
 #include <stdio.h>
 #include <stdlib.h>
+
+// Function definitions
+static struct ls_var_t ls_exec_expr_recursion(struct ls_exec_t *, 
+  struct ls_node_t *);
+static struct ls_var_t ls_exec_array_node(struct ls_exec_t *, 
+  struct ls_node_t *);
+static struct ls_var_t ls_exec_array_element_node(struct ls_exec_t *, 
+  struct ls_node_t *);
+static struct ls_var_t ls_exec_expr_stack(struct ls_exec_t *, 
+  struct ls_node_t *);
+struct ls_var_t ls_exec_function_call_statement(struct ls_exec_t *, 
+  struct ls_node_t *);
+////////////////////////////////////////////////////////////////////////////////
 
 void ls_exec_create(struct ls_exec_t *exec, struct ls_node_t *root_node) {
   exec->root_node = root_node;
@@ -45,13 +59,6 @@ static void ls_exec_debug_print_var(struct ls_var_t *var) {
       break;
   }
 }
-
-static struct ls_var_t ls_exec_expr_recursion(struct ls_exec_t *, 
-  struct ls_node_t *);
-static struct ls_var_t ls_exec_expr_stack(struct ls_exec_t *, 
-  struct ls_node_t *);
-struct ls_var_t ls_exec_function_call_statement(struct ls_exec_t *, 
-  struct ls_node_t *);
 
 struct ls_var_t ls_exec_expr_stack(struct ls_exec_t *exec,
   struct ls_node_t *node) {
@@ -93,7 +100,10 @@ struct ls_var_t ls_exec_expr_stack(struct ls_exec_t *exec,
         temp_var = ls_exec_function_call_statement(exec, pop_node);
       } else if(pop_node->type == ls_node_type_array) {
         // parse array and set it to the temp variable
-        ls_var_create(&temp_var);
+        temp_var = ls_exec_array_node(exec, pop_node);
+      } else if(pop_node->type == ls_node_type_array_element) {
+        // parse array and set it to the temp variable
+        temp_var = ls_exec_array_element_node(exec, pop_node);
       } else {
         if(tt == ls_token_type_number) {
           double val = atof(pop_node->token.value.s);
@@ -371,10 +381,75 @@ struct ls_var_t ls_exec_function_call_statement(struct ls_exec_t *exec,
 
 struct ls_var_t ls_exec_array_node(struct ls_exec_t *exec, 
   struct ls_node_t *node) {
-  struct ls_var_t arr_var;
+  struct ls_var_t arr_var, temp_var;
+  struct ls_array_t arr;
+  struct ls_node_stack_t node_stack;
+  struct ls_node_t *current_node = node->children[0], *pop_node = NULL, *left = NULL, *right = NULL;
+  // needs to be precounted
+  ls_node_stack_create(&node_stack, 10);
+  u8 cnt = 0;
 
+  // comma counting ==> functions and arrays
   
+  while((current_node && current_node->token.type == ls_token_type_comma) || node_stack.count) {
+    while(current_node && current_node->token.type == ls_token_type_comma) {
+      ls_node_stack_push(&node_stack, current_node);
+      if(current_node->children)
+        current_node = current_node->children[0];
+      else current_node = NULL;
+    }
+    pop_node = ls_node_stack_pop(&node_stack);
+    left = pop_node->children[0];
+    right = pop_node->children[1];
+    if(left->token.type != ls_token_type_comma) {
+      cnt++;
+    }
+    cnt++;
+    if(pop_node->children)
+      current_node = pop_node->children[1];
+    else current_node = NULL;
+  }
+
+  // create an array with a stack
+  ls_var_create(&arr_var);
+  ls_array_create(&arr, cnt);
+  ls_var_set_array_value(&arr_var, &arr);
+  if(cnt) {
+    node_stack.count = 0; // flush the stack ==> start again
+    cnt = 0;
+    current_node = node->children[0], pop_node = NULL, left = NULL, right = NULL;
+    while((current_node && current_node->token.type == ls_token_type_comma) || node_stack.count) {
+      while(current_node && current_node->token.type == ls_token_type_comma) {
+        ls_node_stack_push(&node_stack, current_node);
+        if(current_node->children)
+          current_node = current_node->children[0];
+        else current_node = NULL;
+      }
+      pop_node = ls_node_stack_pop(&node_stack);
+      left = pop_node->children[0];
+      right = pop_node->children[1];
+      if(left->token.type != ls_token_type_comma) {
+        temp_var = ls_exec_expr_stack(exec, left);
+        ls_array_set_element(&arr, cnt, &temp_var);
+        cnt++;
+      }
+      temp_var = ls_exec_expr_stack(exec, right);
+      ls_array_set_element(&arr, cnt, &temp_var);
+      cnt++;
+      if(pop_node->children)
+        current_node = pop_node->children[1];
+      else current_node = NULL;
+    }
+  }
+
+  ls_node_stack_delete(&node_stack);
   return arr_var;
+}
+
+struct ls_var_t ls_exec_array_element_node(struct ls_exec_t *exec, 
+  struct ls_node_t *node) {
+  struct ls_var_t ret_var;
+  return ret_var;
 }
 
 static void ls_exec_assign_statement(struct ls_exec_t *exec, 

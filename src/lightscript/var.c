@@ -190,6 +190,8 @@ void ls_var_set_object_value(struct ls_var_t *var, struct ls_object_t *val) {
 }
 
 void ls_var_set_array_value(struct ls_var_t *var, struct ls_array_t *val) {
+  var->value = (struct ls_array_t *) malloc(sizeof(struct ls_array_t));
+  *((struct ls_array_t *)var->value) = *val;
   var->type = ls_var_type_array;
 }
 
@@ -788,6 +790,9 @@ void ls_var_operator_assign(struct ls_var_t *var, struct ls_var_t *value) {
 
 void ls_var_delete_value(struct ls_var_t *var) {
   if(var->value) {
+    if(var->type == ls_var_type_array) {
+      ls_array_delete(ls_var_get_array_value(var));
+    }
     free(var->value);
     var->type = ls_var_type_none;
   }
