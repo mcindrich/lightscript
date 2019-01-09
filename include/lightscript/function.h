@@ -5,7 +5,8 @@
 #include <lightscript/var-list.h>
 #include <lightscript/typedefs.h>
 
-typedef struct ls_var_t (*ls_c_function_t)(struct ls_var_list_t *);
+typedef struct ls_var_t (*ls_c_function_t)(struct ls_var_list_t *, 
+  struct ls_var_list_t *);
 
 struct ls_function_t {
   struct ls_node_t *node; // if it's a user defined ==> has a node for execution

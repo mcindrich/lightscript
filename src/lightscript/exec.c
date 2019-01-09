@@ -4,12 +4,15 @@
 #include <lightscript/defines.h>
 #include <lightscript/function.h>
 #include <lightscript/array.h>
+#include <lightscript/object.h>
 #include <string.h>
 #include <stdio.h>
 #include <stdlib.h>
 
 // Function definitions
 static struct ls_var_t ls_exec_expr_recursion(struct ls_exec_t *, 
+  struct ls_node_t *);
+static struct ls_var_t ls_exec_obj_node(struct ls_exec_t *, 
   struct ls_node_t *);
 static struct ls_var_t ls_exec_array_node(struct ls_exec_t *, 
   struct ls_node_t *);
@@ -114,6 +117,8 @@ struct ls_var_t ls_exec_expr_stack(struct ls_exec_t *exec,
       } else if(pop_node->type == ls_node_type_array_element) {
         // parse array and set it to the temp variable
         temp_var = ls_exec_array_element_node(exec, pop_node);
+      } else if(pop_node->type == ls_node_type_object_property) {
+        temp_var = ls_exec_obj_node(exec, pop_node);
       } else {
         if(tt == ls_token_type_number) {
           double val = atof(pop_node->token.value.s);
@@ -198,7 +203,6 @@ struct ls_var_t ls_exec_expr_stack(struct ls_exec_t *exec,
         } else if(tt == ls_token_type_or_op) {
           res = ls_var_operator_or(&left, &right);
         } else if(tt == ls_token_type_colon) {
-          // get object stuff
           res = ls_var_operator_obj(&left, &right);
         }
         ls_var_delete(&left);
@@ -262,9 +266,6 @@ struct ls_var_t ls_exec_expr_recursion(struct ls_exec_t *exec,
         ret = ls_var_operator_and(&left, &right);
       } else if(tt == ls_token_type_or_op) {
         ret = ls_var_operator_or(&left, &right);
-      } else if(tt == ls_token_type_colon) {
-        // get object stuff
-        ret = ls_var_operator_obj(&left, &right);
       }
       ls_var_delete(&left);
       ls_var_delete(&right);
@@ -298,7 +299,8 @@ struct ls_var_t ls_exec_expr_recursion(struct ls_exec_t *exec,
             node->token.value.s);
         }
         if(list_var) {
-          ls_var_copy(&ret, list_var);
+          // ls_var_copy
+          ls_var_set_reference_value(&ret, list_var);
         } else {
           // error ==> no such variable
         }
@@ -331,6 +333,30 @@ void ls_exec_function_definition_statement(struct ls_exec_t *exec,
   }
 }
 
+void ls_exec_object_definition_statement(struct ls_exec_t *exec, 
+  struct ls_node_t *node) {
+  struct ls_object_t obj;
+  struct ls_var_t obj_var;
+  struct ls_exec_t exec2;
+
+  ls_var_create(&obj_var);
+  ls_var_set_name(&obj_var, node->token.value.s);
+
+  ls_object_create(&obj);
+
+  ls_exec_create(&exec2, node->children[0]);
+  ls_exec_set_global_vars(&exec2, &obj.object_vars);
+  ls_exec_run(&exec2);
+
+  ls_var_set_object_value(&obj_var, &obj);
+
+  if(exec->local_vars) {
+    ls_var_list_add_var(exec->local_vars, &obj_var);
+  } else {
+    ls_var_list_add_var(exec->global_vars, &obj_var);
+  }
+}
+
 struct ls_var_t ls_exec_function_call_statement(struct ls_exec_t *exec, 
   struct ls_node_t *node) {
   struct ls_var_t ret_var, temp_var;
@@ -358,10 +384,10 @@ struct ls_var_t ls_exec_function_call_statement(struct ls_exec_t *exec,
         left = pop_node->children[0];
         right = pop_node->children[1];
         if(left->token.type != ls_token_type_comma) {
-          temp_var = ls_exec_expr_recursion(exec, left);
+          temp_var = ls_exec_expr_stack(exec, left);
           ls_var_list_add_var(&args, &temp_var);
         }
-        temp_var = ls_exec_expr_recursion(exec, right);
+        temp_var = ls_exec_expr_stack(exec, right);
         ls_var_list_add_var(&args, &temp_var);
         if(pop_node->children)
           current_node = pop_node->children[1];
@@ -371,7 +397,7 @@ struct ls_var_t ls_exec_function_call_statement(struct ls_exec_t *exec,
       ls_node_stack_delete(&node_stack);
     } else {
       // one argument
-      temp_var = ls_exec_expr_recursion(exec, node->children[0]);
+      temp_var = ls_exec_expr_stack(exec, node->children[0]);
       ls_var_list_add_var(&args, &temp_var);
     }
   }
@@ -507,6 +533,37 @@ struct ls_var_t ls_exec_array_element_node(struct ls_exec_t *exec,
   return ret_var;
 }
 
+struct ls_var_t ls_exec_obj_node(struct ls_exec_t *exec, 
+  struct ls_node_t *node) {
+  struct ls_var_t ret, *list_var = NULL;
+  struct ls_object_t *obj_ptr = NULL;
+  char *obj_name = node->children[0]->token.value.s;
+  ls_var_create(&ret);
+
+  // get global or local array
+  if(exec->local_vars) {
+    // get local variable first
+    list_var = ls_var_list_get_var_by_name(exec->local_vars, 
+      obj_name);
+    if(!list_var) {
+      // get global variable
+      list_var = ls_var_list_get_var_by_name(exec->global_vars, 
+        obj_name);
+    }
+  } else {
+    // get global variable
+    list_var = ls_var_list_get_var_by_name(exec->global_vars, 
+      obj_name);
+  }
+  if(!list_var) {
+
+  } else {
+    obj_ptr = ls_var_get_object_value(list_var);
+    ls_var_list_debug_print(&obj_ptr->object_vars);
+  }
+  return ret;
+}
+
 void ls_exec_return_statement(struct ls_exec_t *exec, struct ls_node_t *node) {
   if(!exec->return_var) {
     // error ==> no var given to write to ==> not a function
@@ -548,6 +605,9 @@ void ls_exec_run(struct ls_exec_t *exec) {
           break;
         case ls_node_type_function_definition:
           ls_exec_function_definition_statement(exec, node);
+          break;
+        case ls_node_type_object_definition:
+          ls_exec_object_definition_statement(exec, node);
           break;
         case ls_node_type_if_statement:
           if(ls_exec_if_statement(exec, node)) {

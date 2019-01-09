@@ -1,6 +1,7 @@
 #include <lightscript/var.h>
 #include <lightscript/function.h>
 #include <lightscript/array.h>
+#include <lightscript/object.h>
 #include <stddef.h>
 #include <stdlib.h>
 #include <string.h>
@@ -186,6 +187,8 @@ void ls_var_set_function_value(struct ls_var_t *var,
 }
 
 void ls_var_set_object_value(struct ls_var_t *var, struct ls_object_t *val) {
+  var->value = (struct ls_object_t *) malloc(sizeof(struct ls_object_t));
+  *((struct ls_object_t *)var->value) = *val;
   var->type = ls_var_type_object;
 }
 
@@ -708,6 +711,9 @@ struct ls_var_t ls_var_operator_equal(struct ls_var_t *l, struct ls_var_t *r) {
       ls_var_set_reference_value(ref, ls_var_get_reference_value(last));
     }
   } else {
+    while(LS_VAR_IS_REFERENCE(ref)) {
+      ref = ls_var_get_reference_value(ref);
+    }
     ls_var_delete_value(ref);
     ref->value = r->value;
     ref->type = r->type;
@@ -792,6 +798,9 @@ void ls_var_delete_value(struct ls_var_t *var) {
   if(var->value) {
     if(var->type == ls_var_type_array) {
       ls_array_delete(ls_var_get_array_value(var));
+    } else if(var->type == ls_var_type_object) {
+      // deconstructor ==> delete
+      ls_object_delete(ls_var_get_object_value(var));
     }
     free(var->value);
     var->type = ls_var_type_none;

@@ -1,5 +1,9 @@
 #include <lightscript/object.h>
+#include <lightscript/function.h>
+#include <lightscript/var.h>
 #include <stdlib.h>
+
+
 
 void ls_object_create(struct ls_object_t *obj) {
   obj->c_object = NULL;
@@ -15,5 +19,8 @@ void ls_object_add_var(struct ls_object_t *obj, struct ls_var_t *var) {
 }
 
 void ls_object_delete(struct ls_object_t *obj) {
+  if(obj->c_object) {
+    free(obj->c_object);
+  }
   ls_var_list_delete(&obj->object_vars);
 }

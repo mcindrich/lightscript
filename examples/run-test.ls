@@ -1,5 +1,9 @@
-abc = [100, 200, 300];
+def change(a) do
+ a = 500;
+end
 
-a = abc[2];
+a = 10;
+
+change(a + 10);
 
 CPrint(a);

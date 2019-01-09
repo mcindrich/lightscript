@@ -133,9 +133,7 @@ struct ls_node_t *ls_parse_expression(struct ls_parser_t *parser, size_t *pos,
   boolean *func_args = (boolean *) calloc(100, sizeof(boolean));
 
   for(; *pos < parser->token_count &&
-    LS_IS_VALID_EXPR_TOKEN(parser->tokens[*pos].type); (*pos) += 1, ++mss) {
-    //if(LS_IS_OPERATOR(parser->tokens[*pos].type)) op_mss++;
-  }
+    LS_IS_VALID_EXPR_TOKEN(parser->tokens[*pos].type); (*pos) += 1, ++mss);
   // allocate with max num of ops ==> just put mss ==> fix the bug later ==>
   // parenthesis and braces should be set to operators ==> LS_IS_OPERATOR func
   ls_token_stack_create(&op_stack, mss);
@@ -156,7 +154,11 @@ struct ls_node_t *ls_parse_expression(struct ls_parser_t *parser, size_t *pos,
         tnode1 = ls_node_stack_pop(&expr_stack);
 
         //printf("New Node: %c: %s %s\n", temp_token.value.c, tnode0->token.value.s, tnode1->token.value.s);
-        ls_node_create(&tnode2, 2, ls_node_type_expression, &temp_token);
+        if(temp_token.type == ls_token_type_colon) {
+          ls_node_create(&tnode2, 2, ls_node_type_object_property, &temp_token);
+        } else {
+          ls_node_create(&tnode2, 2, ls_node_type_expression, &temp_token);
+        }
         tnode2->children[0] = tnode1;
         tnode2->children[1] = tnode0;
         ls_node_stack_push(&expr_stack, tnode2);
@@ -218,7 +220,11 @@ struct ls_node_t *ls_parse_expression(struct ls_parser_t *parser, size_t *pos,
         tnode1 = ls_node_stack_pop(&expr_stack);
 
         //printf("New Node: %c: %s %s\n", temp_token.value.c, tnode0->token.value.s, tnode1->token.value.s);
-        ls_node_create(&tnode2, 2, ls_node_type_expression, &temp_token);
+        if(temp_token.type == ls_token_type_colon) {
+          ls_node_create(&tnode2, 2, ls_node_type_object_property, &temp_token);
+        } else {
+          ls_node_create(&tnode2, 2, ls_node_type_expression, &temp_token);
+        }
         tnode2->children[0] = tnode1;
         tnode2->children[1] = tnode0;
         ls_node_stack_push(&expr_stack, tnode2);
@@ -232,7 +238,11 @@ struct ls_node_t *ls_parse_expression(struct ls_parser_t *parser, size_t *pos,
         tnode1 = ls_node_stack_pop(&expr_stack);
 
         //printf("New Node: %c: %s %s\n", temp_token.value.c, tnode0->token.value.s, tnode1->token.value.s);
-        ls_node_create(&tnode2, 2, ls_node_type_expression, &temp_token);
+        if(temp_token.type == ls_token_type_colon) {
+          ls_node_create(&tnode2, 2, ls_node_type_object_property, &temp_token);
+        } else {
+          ls_node_create(&tnode2, 2, ls_node_type_expression, &temp_token);
+        }
         tnode2->children[0] = tnode1;
         tnode2->children[1] = tnode0;
         ls_node_stack_push(&expr_stack, tnode2);
@@ -253,7 +263,11 @@ struct ls_node_t *ls_parse_expression(struct ls_parser_t *parser, size_t *pos,
         tnode1 = ls_node_stack_pop(&expr_stack);
 
         //printf("New Node: %c: %s %s\n", temp_token.value.c, tnode0->token.value.s, tnode1->token.value.s);
-        ls_node_create(&tnode2, 2, ls_node_type_expression, &temp_token);
+        if(temp_token.type == ls_token_type_colon) {
+          ls_node_create(&tnode2, 2, ls_node_type_object_property, &temp_token);
+        } else {
+          ls_node_create(&tnode2, 2, ls_node_type_expression, &temp_token);
+        }
         tnode2->children[0] = tnode1;
         tnode2->children[1] = tnode0;
         ls_node_stack_push(&expr_stack, tnode2);
@@ -288,7 +302,11 @@ struct ls_node_t *ls_parse_expression(struct ls_parser_t *parser, size_t *pos,
     tnode1 = ls_node_stack_pop(&expr_stack);
 
     //printf("New Node: %c: %s %s\n", temp_token.value.c, tnode0->token.value.s, tnode1->token.value.s);
-    ls_node_create(&tnode2, 2, ls_node_type_expression, &temp_token);
+    if(temp_token.type == ls_token_type_colon) {
+      ls_node_create(&tnode2, 2, ls_node_type_object_property, &temp_token);
+    } else {
+      ls_node_create(&tnode2, 2, ls_node_type_expression, &temp_token);
+    }
     tnode2->children[0] = tnode1;
     tnode2->children[1] = tnode0;
     ls_node_stack_push(&expr_stack, tnode2);
@@ -434,6 +452,7 @@ static void ls_parse_object_keyword(struct ls_parser_t *parser, size_t *pos,
   (*parser->current_node)->children[0] = NULL;
   parser->next_node = &(*parser->current_node)->children[0];
   ls_node_stack_push(&parser->node_stack, *parser->current_node);
+  *pos += 1;
 }
 
 static void ls_parse_assign_operator(struct ls_parser_t *parser, size_t last, 

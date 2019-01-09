@@ -32,7 +32,7 @@ struct ls_var_t ls_function_execute(struct ls_function_t *func, struct ls_var_li
 
   if(func->c_function) {
     // execute an internal functions
-    ret = func->c_function(args);
+    ret = func->c_function(globals, args);
   } else {
     curr = func->node->children[0];
     while(curr) {

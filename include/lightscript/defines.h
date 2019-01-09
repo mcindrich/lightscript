@@ -106,7 +106,8 @@ var->type <= ls_var_type_u64\
 #define LS_IS_VALID_EXPR_NODE(node) (node->children &&\
 node->type != ls_node_type_function_call &&\
 node->type != ls_node_type_array &&\
-node->type != ls_node_type_array_element)
+node->type != ls_node_type_array_element &&\
+node->type != ls_node_type_object_property)
 
 #define boolean_false 0
 #define boolean_true 1
