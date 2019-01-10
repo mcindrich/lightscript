@@ -7,7 +7,23 @@
 void ls_var_list_create(struct ls_var_list_t *vl, size_t init_size) {
   vl->vars = NULL;
   vl->count = 0;
-  vl->size = 0;
+  vl->size = init_size;
+  if(init_size) {
+    vl->vars = (struct ls_var_t *) malloc(sizeof(struct ls_var_t) * init_size);
+  }
+}
+
+void ls_var_list_copy(struct ls_var_list_t *dest, struct ls_var_list_t *src) {
+  ls_var_list_delete(dest);
+
+  dest->size = src->size;
+  dest->vars = (struct ls_var_t *) malloc(sizeof(struct ls_var_t) * dest->size);
+
+  for(; dest->count < src->count; dest->count++) {
+    ls_var_create(&dest->vars[dest->count]);
+    ls_var_set_name(&dest->vars[dest->count], src->vars[dest->count].name);
+    ls_var_copy(&dest->vars[dest->count], &src->vars[dest->count]);
+  }
 }
 
 struct ls_var_t *ls_var_list_add_var(struct ls_var_list_t *vl, 
@@ -43,6 +59,14 @@ struct ls_var_t *ls_var_list_get_var_by_name_and_type(struct ls_var_list_t *vl,
   return NULL;
 }
 
+struct ls_var_t *ls_var_list_get_var_by_pos(struct ls_var_list_t *vl, 
+  size_t pos) {
+  if(pos >= 0 && pos < vl->count) {
+    return &vl->vars[pos];
+  }
+  return NULL;
+}
+
 struct ls_var_t *ls_var_list_get_var_by_name(struct ls_var_list_t *vl, 
   char *name) {
   size_t i = 0;
@@ -61,5 +85,7 @@ void ls_var_list_delete(struct ls_var_list_t *vl) {
       ls_var_delete(&vl->vars[i]);
     }
     free(vl->vars);
+    vl->size = 0;
+    vl->count = 0;
   }
 }

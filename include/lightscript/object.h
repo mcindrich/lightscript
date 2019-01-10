@@ -11,6 +11,7 @@ struct ls_object_t {
 void ls_object_create(struct ls_object_t *);
 void ls_object_set_c_object(struct ls_object_t *, void *, size_t );
 void ls_object_add_var(struct ls_object_t *, struct ls_var_t *);
+struct ls_var_t *ls_object_get_var(struct ls_object_t *, char *);
 void ls_object_delete(struct ls_object_t *);
 
 #endif

@@ -495,7 +495,7 @@ struct ls_var_t ls_exec_array_element_node(struct ls_exec_t *exec,
   struct ls_node_t *node) {
   struct ls_var_t ret_var, 
     arr_var = ls_exec_array_node(exec, node->children[0]), *arr_var_ptr = NULL, 
-    *temp_var_ptr = NULL;
+    *temp_var_ptr = NULL, expr_res, *curr_pos = NULL;
   struct ls_array_t *arr_ptr = NULL, 
     *arr_pos = ls_var_get_array_value(&arr_var);
   size_t i;
@@ -519,10 +519,13 @@ struct ls_var_t ls_exec_array_element_node(struct ls_exec_t *exec,
   }
   if(!arr_var_ptr) {
   } else {
+    LS_VAR_GET_FINAL_VALUE(arr_var_ptr);
     arr_ptr = ls_var_get_array_value(arr_var_ptr);
   }
   // for now only one dimension array
-  temp_var_ptr = ls_array_get_element(arr_ptr, ls_var_get_s32_value(&arr_pos->vars[0]));
+  curr_pos = &arr_pos->vars[0];
+  LS_VAR_GET_FINAL_VALUE(curr_pos);
+  temp_var_ptr = ls_array_get_element(arr_ptr, ls_var_get_s32_value(curr_pos));
   if(!temp_var_ptr) {
     // out of bounds
     

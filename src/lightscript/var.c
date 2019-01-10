@@ -18,9 +18,9 @@ void ls_var_create(struct ls_var_t *var) {
 // copy function
 
 void ls_var_copy(struct ls_var_t *v1, struct ls_var_t *v2) {
-  /*if(v2->name) {
-    ls_var_set_name(v1, v2->name);
-  }*/
+  struct ls_object_t temp_obj, *temp_obj_ptr = NULL;
+  struct ls_array_t temp_arr, *temp_arr_ptr = NULL;
+
   switch(v2->type) {
     case ls_var_type_none:
       break;
@@ -61,8 +61,13 @@ void ls_var_copy(struct ls_var_t *v1, struct ls_var_t *v2) {
       ls_var_set_reference_value(v1, ls_var_get_reference_value(v2));
       break;
     case ls_var_type_function:
+      ls_var_set_function_value(v1, ls_var_get_function_value(v2));
       break;
     case ls_var_type_object:
+      temp_obj_ptr = ls_var_get_object_value(v2);
+      ls_object_create(&temp_obj);
+      ls_var_list_copy(&temp_obj.object_vars, &temp_obj_ptr->object_vars);
+      ls_var_set_object_value(v1, &temp_obj);
       break;
     case ls_var_type_array:
       break;
@@ -799,7 +804,6 @@ void ls_var_delete_value(struct ls_var_t *var) {
     if(var->type == ls_var_type_array) {
       ls_array_delete(ls_var_get_array_value(var));
     } else if(var->type == ls_var_type_object) {
-      // deconstructor ==> delete
       ls_object_delete(ls_var_get_object_value(var));
     }
     free(var->value);
@@ -808,8 +812,8 @@ void ls_var_delete_value(struct ls_var_t *var) {
 }
 
 void ls_var_delete(struct ls_var_t *var) {
+  ls_var_delete_value(var);
   if(var->name) {
     free(var->name);
   }
-  ls_var_delete_value(var);
 }

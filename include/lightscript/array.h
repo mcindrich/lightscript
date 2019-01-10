@@ -3,7 +3,7 @@
 
 #include <lightscript/var.h>
 
-#define ARRAY_EXTRA_ALLOC_SPACE 20
+#define ARRAY_EXTRA_ALLOC_SPACE 100
 
 struct ls_array_t {
   struct ls_var_t *vars;

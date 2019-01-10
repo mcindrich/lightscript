@@ -67,9 +67,15 @@ struct ls_var_t ls_c_print_func(struct ls_var_list_t *globals, struct ls_var_lis
           case ls_var_type_boolean:
             printf("%s", ls_var_get_boolean_value(var)? "True" : "False");
             break;
+          case ls_var_type_object:
+            printf("<< %s >>", var->name);
+            break;
           default:
             break;
         }
+        break;
+      case ls_var_type_object:
+        printf("<< %s >>", var->name);
         break;
       default:
         break;
@@ -88,9 +94,18 @@ struct ls_var_t ls_c_pow_func(struct ls_var_list_t *globals, struct ls_var_list_
 
 struct ls_var_t ls_c_new_func(struct ls_var_list_t *globals, struct ls_var_list_t *args) {
   // function for creating new objects
-  // get the object using the name and add copy all the variables
-  struct ls_var_t ret;
+  // get the object using the name and copy the object
+  struct ls_var_t ret, *obj_var = ls_var_list_get_var_by_pos(args, 0);
   ls_var_create(&ret);
+
+  if(obj_var && LS_VAR_IS_REFERENCE(obj_var)) {
+    obj_var = ls_var_get_reference_value(obj_var);
+  }
+
+  if(obj_var && obj_var->type == ls_var_type_object) {
+    ls_var_copy(&ret, obj_var);
+  }
+
   return ret;
 }
 

@@ -1,9 +1,15 @@
-def change(a) do
- a = 500;
+def func(arr) do
+  CPrint(arr[4]);
 end
 
-a = 10;
+a = 0;
+arr = [];
 
-change(a + 10);
+while a < 20
+do
+  arr[a] = a * "*";
+  a = a + 1;
+end
 
-CPrint(a);
+
+CPrint(arr[10]);

@@ -28,7 +28,13 @@ void ls_array_set_element(struct ls_array_t *arr, size_t pos,
 
 struct ls_var_t *ls_array_get_element(struct ls_array_t *arr, size_t pos) {
   struct ls_var_t *ret = NULL;
+  struct ls_var_t temp_var;
+
   if(pos >= 0 && pos < arr->size) {
+    ret = &arr->vars[pos];
+  } else {
+    ls_var_create(&temp_var);
+    ls_array_set_element(arr, pos, &temp_var);
     ret = &arr->vars[pos];
   }
   return ret;

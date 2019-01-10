@@ -4,7 +4,7 @@
 #include <lightscript/token.h>
 
 // enable for debugging the parser and not to execute statements
-//#define PARSER_DEBUGGING
+// #define PARSER_DEBUGGING
 
 // enable for testing in main.c
 // #define MAIN_DEBUGGING
@@ -85,6 +85,11 @@ c == ')' || c == '[' || c == ']' || c == '{' || \
 c == '}' || c == ' ' || c == '\t' || c == '\n' || \
 c == ',' || c == ':' \
 )
+
+#define LS_VAR_GET_FINAL_VALUE(var) while(LS_VAR_IS_REFERENCE(var)) {\
+  var = \
+  ls_var_get_reference_value(var);\
+}
 
 #define LS_IS_DOUBLE_TOKEN(c, next) ( \
 ((c == '+' || c == '-' || c == '=' || c == '*' || c == '/' || c == '&' \
