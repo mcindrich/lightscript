@@ -2,6 +2,7 @@
 #include <lightscript/node-stack.h>
 #include <lightscript/var-stack.h>
 #include <lightscript/defines.h>
+#include <lightscript/module.h>
 #include <lightscript/function.h>
 #include <lightscript/array.h>
 #include <lightscript/object.h>
@@ -22,6 +23,9 @@ static struct ls_var_t ls_exec_expr_stack(struct ls_exec_t *,
   struct ls_node_t *);
 struct ls_var_t ls_exec_function_call_statement(struct ls_exec_t *, 
   struct ls_node_t *);
+
+// function to return variable pointer ==> checks all modules and variables
+struct ls_var_t *ls_exec_get_var_from_list(struct ls_var_list_t *, char *);
 ////////////////////////////////////////////////////////////////////////////////
 
 void ls_exec_create(struct ls_exec_t *exec, struct ls_node_t *root_node) {
@@ -313,6 +317,13 @@ struct ls_var_t ls_exec_expr_recursion(struct ls_exec_t *exec,
   return ret;
 }
 
+void ls_exec_include_statement(struct ls_exec_t *exec, struct ls_node_t *node) {
+  struct ls_var_t *list_var = ls_var_list_get_var_by_name(exec->global_vars, node->token.value.s);
+  if(LS_VAR_IS_MODULE(list_var)) {
+    ls_var_get_module_value(list_var)->imported = ls_boolean_true;
+  }
+}
+
 void ls_exec_function_definition_statement(struct ls_exec_t *exec, 
   struct ls_node_t *node) {
   struct ls_function_t func;
@@ -357,6 +368,18 @@ void ls_exec_object_definition_statement(struct ls_exec_t *exec,
   }
 }
 
+struct ls_var_t *ls_exec_get_var_from_list(struct ls_var_list_t *ls, 
+  char *name) {
+  struct ls_var_t *var = NULL;
+  size_t i;
+  for(i = 0; i < ls->count; i++) {
+    var = &ls->vars[i];
+    if(strcmp(var->name, name) == 0) return var;
+    if(LS_VAR_IS_MODULE(var)) return ls_exec_get_var_from_list(&ls_var_get_module_value(var)->vars, name);
+  }
+  return NULL;
+}
+
 struct ls_var_t ls_exec_function_call_statement(struct ls_exec_t *exec, 
   struct ls_node_t *node) {
   struct ls_var_t ret_var, temp_var;
@@ -365,51 +388,50 @@ struct ls_var_t ls_exec_function_call_statement(struct ls_exec_t *exec,
   ls_var_list_create(&args, 0);
   ls_var_create(&ret_var);
 
-  if(node->children[0]) {
-    if(node->children[0]->token.type == ls_token_type_comma) {
-      // count
-      struct ls_node_stack_t node_stack;
-      struct ls_node_t *current_node = node->children[0], *pop_node = NULL, *left = NULL, *right = NULL;
-
-      ls_node_stack_create(&node_stack, 255);
-      
-      while((current_node && current_node->token.type == ls_token_type_comma) || node_stack.count) {
-        while(current_node && current_node->token.type == ls_token_type_comma) {
-          ls_node_stack_push(&node_stack, current_node);
-          if(current_node->children)
-            current_node = current_node->children[0];
-          else current_node = NULL;
-        }
-        pop_node = ls_node_stack_pop(&node_stack);
-        left = pop_node->children[0];
-        right = pop_node->children[1];
-        if(left->token.type != ls_token_type_comma) {
-          temp_var = ls_exec_expr_stack(exec, left);
-          ls_var_list_add_var(&args, &temp_var);
-        }
-        temp_var = ls_exec_expr_stack(exec, right);
-        ls_var_list_add_var(&args, &temp_var);
-        if(pop_node->children)
-          current_node = pop_node->children[1];
-        else current_node = NULL;
-      }
-
-      ls_node_stack_delete(&node_stack);
-    } else {
-      // one argument
-      temp_var = ls_exec_expr_stack(exec, node->children[0]);
-      ls_var_list_add_var(&args, &temp_var);
-    }
-  }
-
   struct ls_var_t *func = ls_var_list_get_var_by_name_and_type(
-      exec->global_vars, node->token.value.s, ls_var_type_function);
+    exec->global_vars, node->token.value.s, ls_var_type_function);
   
   if(func) {
+    if(node->children[0]) {
+      if(node->children[0]->token.type == ls_token_type_comma) {
+        // count
+        struct ls_node_stack_t node_stack;
+        struct ls_node_t *current_node = node->children[0], *pop_node = NULL, *left = NULL, *right = NULL;
+
+        ls_node_stack_create(&node_stack, 255);
+        
+        while((current_node && current_node->token.type == ls_token_type_comma) || node_stack.count) {
+          while(current_node && current_node->token.type == ls_token_type_comma) {
+            ls_node_stack_push(&node_stack, current_node);
+            if(current_node->children)
+              current_node = current_node->children[0];
+            else current_node = NULL;
+          }
+          pop_node = ls_node_stack_pop(&node_stack);
+          left = pop_node->children[0];
+          right = pop_node->children[1];
+          if(left->token.type != ls_token_type_comma) {
+            temp_var = ls_exec_expr_stack(exec, left);
+            ls_var_list_add_var(&args, &temp_var);
+          }
+          temp_var = ls_exec_expr_stack(exec, right);
+          ls_var_list_add_var(&args, &temp_var);
+          if(pop_node->children)
+            current_node = pop_node->children[1];
+          else current_node = NULL;
+        }
+
+        ls_node_stack_delete(&node_stack);
+      } else {
+        // one argument
+        temp_var = ls_exec_expr_stack(exec, node->children[0]);
+        ls_var_list_add_var(&args, &temp_var);
+      }
+    }
     struct ls_function_t *func_ptr = ls_var_get_function_value(func);
     ret_var = ls_function_execute(func_ptr, exec->global_vars, &args);
   } else {
-    // err => function does not exist
+    // function does not exist
   }
   ls_var_list_delete(&args);
   return ret_var;
@@ -421,7 +443,7 @@ struct ls_var_t ls_exec_array_node(struct ls_exec_t *exec,
   struct ls_array_t arr;
   struct ls_node_stack_t node_stack;
   struct ls_node_t *current_node = node->children[0], *pop_node = NULL, *left = NULL, *right = NULL;
-  boolean set = boolean_false;
+  ls_boolean_t set = ls_boolean_false;
   // needs to be precounted ==> TODO
   ls_node_stack_create(&node_stack, 10);
   u8 cnt = -1;
@@ -430,7 +452,7 @@ struct ls_var_t ls_exec_array_node(struct ls_exec_t *exec,
   while(current_node || node_stack.count) {
     if(!set) {
       cnt = 0;
-      set = boolean_true;
+      set = ls_boolean_true;
     }
     while(current_node && current_node->token.type == ls_token_type_comma) {
       ls_node_stack_push(&node_stack, current_node);
@@ -576,11 +598,11 @@ void ls_exec_return_statement(struct ls_exec_t *exec, struct ls_node_t *node) {
   }
 }
 
-boolean ls_exec_if_statement(struct ls_exec_t *exec, struct ls_node_t *node) {
+ls_boolean_t ls_exec_if_statement(struct ls_exec_t *exec, struct ls_node_t *node) {
   struct ls_var_t res = ls_exec_expr_recursion(exec, node->children[0]);
-  boolean ret = boolean_false;
-  if(res.type == ls_var_type_boolean && ls_var_get_boolean_value(&res)) {
-    ret = boolean_true;
+  ls_boolean_t ret = ls_boolean_false;
+  if(res.type == ls_var_type_boolean && ls_var_get_ls_boolean_t_value(&res)) {
+    ret = ls_boolean_true;
   }
   ls_var_delete(&res);
   return ret;
@@ -591,7 +613,7 @@ void ls_exec_run(struct ls_exec_t *exec) {
   struct ls_var_t ret_var;
   struct ls_node_stack_t node_stack;
 
-  boolean if_passed = boolean_false;
+  ls_boolean_t if_passed = ls_boolean_false;
 
   // needs to be max stack size, but for now put 100 ==> ugly python style
   ls_node_stack_create(&node_stack, 100);
@@ -599,6 +621,9 @@ void ls_exec_run(struct ls_exec_t *exec) {
   while(node || node_stack.count) {
     while(node) {
       switch(node->type) {
+        case ls_node_type_include_statement:
+          ls_exec_include_statement(exec, node);
+          break;
         case ls_node_type_expression:
           ret_var = ls_exec_expr_stack(exec, node);
           ls_var_delete(&ret_var);
@@ -616,10 +641,10 @@ void ls_exec_run(struct ls_exec_t *exec) {
           if(ls_exec_if_statement(exec, node)) {
             ls_node_stack_push(&node_stack, node);
             node = node->children[1];
-            if_passed = boolean_true;
+            if_passed = ls_boolean_true;
             continue;
           } else {
-            if_passed = boolean_false;
+            if_passed = ls_boolean_false;
           }
           break;
         case ls_node_type_else_statement:
@@ -628,7 +653,7 @@ void ls_exec_run(struct ls_exec_t *exec) {
             node = node->children[0];
             continue;
           }
-          if_passed = boolean_false;
+          if_passed = ls_boolean_false;
           break;
         case ls_node_type_while_statement:
           if(ls_exec_if_statement(exec, node)) {

@@ -129,8 +129,8 @@ struct ls_node_t *ls_parse_expression(struct ls_parser_t *parser, size_t *pos,
   struct ls_token_t temp_token;
   size_t mss = 0, op_mss = 0, i = *pos, args_count, arr_pos = 0, func_pos = 0;
 
-  boolean *arr_args = (boolean *) calloc(100, sizeof(boolean));
-  boolean *func_args = (boolean *) calloc(100, sizeof(boolean));
+  ls_boolean_t *arr_args = (ls_boolean_t *) calloc(100, sizeof(ls_boolean_t));
+  ls_boolean_t *func_args = (ls_boolean_t *) calloc(100, sizeof(ls_boolean_t));
 
   for(; *pos < parser->token_count &&
     LS_IS_VALID_EXPR_TOKEN(parser->tokens[*pos].type); (*pos) += 1, ++mss);

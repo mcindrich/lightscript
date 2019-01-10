@@ -7,6 +7,7 @@
 struct ls_function_t;
 struct ls_object_t;
 struct ls_array_t;
+struct ls_module_t;
 
 enum ls_var_type_t {
   ls_var_type_none,
@@ -24,7 +25,8 @@ enum ls_var_type_t {
   ls_var_type_reference,
   ls_var_type_function,
   ls_var_type_object,
-  ls_var_type_array
+  ls_var_type_array,
+  ls_var_type_module
 };
 
 struct ls_var_t {
@@ -46,7 +48,7 @@ void ls_var_set_u32_value(struct ls_var_t *, u32);
 void ls_var_set_s64_value(struct ls_var_t *, s64);
 void ls_var_set_u64_value(struct ls_var_t *, u64);
 void ls_var_set_double_value(struct ls_var_t *, double);
-void ls_var_set_boolean_value(struct ls_var_t *, boolean);
+void ls_var_set_ls_boolean_t_value(struct ls_var_t *, ls_boolean_t);
 void ls_var_set_string_value(struct ls_var_t *, char *);
 void ls_var_set_string_concat_value(struct ls_var_t *, char *, char *);
 void ls_var_set_string_multiply_value(struct ls_var_t *, char *, int);
@@ -54,6 +56,7 @@ void ls_var_set_reference_value(struct ls_var_t *, struct ls_var_t *);
 void ls_var_set_function_value(struct ls_var_t *, struct ls_function_t *);
 void ls_var_set_object_value(struct ls_var_t *, struct ls_object_t *);
 void ls_var_set_array_value(struct ls_var_t *, struct ls_array_t *);
+void ls_var_set_module_value(struct ls_var_t *, struct ls_module_t *);
 
 s8 ls_var_get_s8_value(struct ls_var_t *);
 u8 ls_var_get_u8_value(struct ls_var_t *);
@@ -64,12 +67,13 @@ u32 ls_var_get_u32_value(struct ls_var_t *);
 s64 ls_var_get_s64_value(struct ls_var_t *);
 u64 ls_var_get_u64_value(struct ls_var_t *);
 double ls_var_get_double_value(struct ls_var_t *);
-boolean ls_var_get_boolean_value(struct ls_var_t *);
+ls_boolean_t ls_var_get_ls_boolean_t_value(struct ls_var_t *);
 char* ls_var_get_string_value(struct ls_var_t *);
 struct ls_var_t *ls_var_get_reference_value(struct ls_var_t *);
 struct ls_function_t *ls_var_get_function_value(struct ls_var_t *);
 struct ls_object_t *ls_var_get_object_value(struct ls_var_t *);
 struct ls_array_t *ls_var_get_array_value(struct ls_var_t *);
+struct ls_module_t *ls_var_get_module_value(struct ls_var_t *);
 
 struct ls_var_t ls_var_operator_add(struct ls_var_t *, struct ls_var_t *);
 struct ls_var_t ls_var_operator_sub(struct ls_var_t *, struct ls_var_t *);

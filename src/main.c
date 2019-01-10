@@ -6,7 +6,6 @@
 int main(int argc, char **argv) {
   int main_ret_val = 0;
 #ifndef MAIN_DEBUGGING
-  
   struct ls_interpreter_t inter;
   ls_interpreter_create(&inter, argc, argv);
   // for now only code in file execution 

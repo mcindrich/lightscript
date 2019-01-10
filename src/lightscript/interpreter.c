@@ -1,6 +1,7 @@
 #include <lightscript/interpreter.h>
 #include <lightscript/function.h>
 #include <lightscript/object.h>
+#include <lightscript/modules-build.h>
 #include <stdio.h>
 #include <math.h>
 #include <stdlib.h>
@@ -21,99 +22,6 @@ static char* read_file(char* fn) {
     fclose(file);
   }
   return code;
-}
-
-struct ls_var_t ls_c_print_func(struct ls_var_list_t *globals, struct ls_var_list_t *args) {
-  struct ls_var_t ret, *var;
-  ls_var_create(&ret); // void ==> no type
-  size_t i = 0;
-  for(; i < args->count; i++) {
-    var = &args->vars[i];
-    switch(var->type) {
-      case ls_var_type_none:
-        printf("Nil");
-        break;
-      case ls_var_type_s32:
-        printf("%d", ls_var_get_s32_value(var));
-        break;
-      case ls_var_type_double:
-        printf("%lf", ls_var_get_double_value(var));
-        break;
-      case ls_var_type_string:
-        printf("%s", ls_var_get_string_value(var));
-        break;
-      case ls_var_type_boolean:
-        printf("%s", ls_var_get_boolean_value(var)? "True" : "False");
-        break;
-      case ls_var_type_reference:
-        while(LS_VAR_IS_REFERENCE(var)) {
-          var = ls_var_get_reference_value(var);
-        }
-        //printf("Ref '%s' = ", var->name);
-        // stupid but will work for now
-        switch(var->type) {
-          case ls_var_type_none:
-            printf("Nil");
-            break;
-          case ls_var_type_s32:
-            printf("%d", ls_var_get_s32_value(var));
-            break;
-          case ls_var_type_double:
-            printf("%lf", ls_var_get_double_value(var));
-            break;
-          case ls_var_type_string:
-            printf("%s", ls_var_get_string_value(var));
-            break;
-          case ls_var_type_boolean:
-            printf("%s", ls_var_get_boolean_value(var)? "True" : "False");
-            break;
-          case ls_var_type_object:
-            printf("<< %s >>", var->name);
-            break;
-          default:
-            break;
-        }
-        break;
-      case ls_var_type_object:
-        printf("<< %s >>", var->name);
-        break;
-      default:
-        break;
-    }
-  }
-  printf("\n");
-  return ret;
-}
-
-struct ls_var_t ls_c_pow_func(struct ls_var_list_t *globals, struct ls_var_list_t *args) {
-  struct ls_var_t ret;
-  ls_var_create(&ret); // void ==> no type
-  ls_var_set_s32_value(&ret, (int)pow(ls_var_get_s32_value(&args->vars[0]), ls_var_get_s32_value(&args->vars[1])));
-  return ret;
-}
-
-struct ls_var_t ls_c_new_func(struct ls_var_list_t *globals, struct ls_var_list_t *args) {
-  // function for creating new objects
-  // get the object using the name and copy the object
-  struct ls_var_t ret, *obj_var = ls_var_list_get_var_by_pos(args, 0);
-  ls_var_create(&ret);
-
-  if(obj_var && LS_VAR_IS_REFERENCE(obj_var)) {
-    obj_var = ls_var_get_reference_value(obj_var);
-  }
-
-  if(obj_var && obj_var->type == ls_var_type_object) {
-    ls_var_copy(&ret, obj_var);
-  }
-
-  return ret;
-}
-
-struct ls_var_t ls_c_file_open_func(struct ls_var_list_t *globals, struct ls_var_list_t *args) {
-  struct ls_var_t ret;
-  ls_var_create(&ret); // void ==> no type
-  // globals are object variables
-  return ret;
 }
 
 void ls_interpreter_create(struct ls_interpreter_t *inter, int argc, 
@@ -139,7 +47,11 @@ int ls_interpreter_execute(struct ls_interpreter_t *inter) {
   } else {
     // go and execute root statement
 #ifndef PARSER_DEBUGGING
+    // call function to add all the modules to the global variables
+    ls_var_list_create(&inter->global_vars, 0);
+    LS_MODULES_BUILD(&inter->global_vars);
     // test functions
+    /*
     struct ls_function_t print_f, pow_f, new_f;
     // vars for functions and objects
     struct ls_var_t print_f_var, pow_f_var, new_f_var;
@@ -176,7 +88,7 @@ int ls_interpreter_execute(struct ls_interpreter_t *inter) {
 
     ls_var_list_add_var(&inter->global_vars, &print_f_var);
     ls_var_list_add_var(&inter->global_vars, &pow_f_var);
-    ls_var_list_add_var(&inter->global_vars, &new_f_var);
+    ls_var_list_add_var(&inter->global_vars, &new_f_var);*/
   
     ls_exec_create(&inter->exec, inter->ast.root);
     ls_exec_set_global_vars(&inter->exec, &inter->global_vars);

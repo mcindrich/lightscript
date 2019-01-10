@@ -1,6 +1,8 @@
 {
   "files.associations": {
     "*.erb": "html",
-    "array.h": "c"
+    "array.h": "c",
+    "modules-build.h": "c",
+    "var-list.h": "c"
   }
 }

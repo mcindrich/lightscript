@@ -1,5 +1,6 @@
 #include <lightscript/var-list.h>
 #include <lightscript/var.h>
+#include <lightscript/module.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -51,9 +52,17 @@ void ls_var_list_debug_print(struct ls_var_list_t *vl) {
 struct ls_var_t *ls_var_list_get_var_by_name_and_type(struct ls_var_list_t *vl, 
   char *name, enum ls_var_type_t type) {
   size_t i = 0;
+  struct ls_var_t *var;
   for(; i < vl->count; i++) {
-    if(strcmp(vl->vars[i].name, name) == 0 && vl->vars[i].type == type) {
-      return &vl->vars[i];
+    var = &vl->vars[i];
+    if(strcmp(var->name, name) == 0 && var->type == type) {
+      return var;
+    }
+    if(LS_VAR_IS_MODULE(var) && ls_var_get_module_value(var)->imported) {
+      // for now use recursion ==> later add a stack
+      var = ls_var_list_get_var_by_name_and_type(
+        &ls_var_get_module_value(var)->vars, name, type);
+      if(var) return var;
     }
   }
   return NULL;

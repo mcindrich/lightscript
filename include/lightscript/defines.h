@@ -4,7 +4,7 @@
 #include <lightscript/token.h>
 
 // enable for debugging the parser and not to execute statements
-// #define PARSER_DEBUGGING
+//#define PARSER_DEBUGGING
 
 // enable for testing in main.c
 // #define MAIN_DEBUGGING
@@ -105,6 +105,10 @@ var->type <= ls_var_type_u64\
 #define LS_VAR_IS_REFERENCE(var) (var->type == ls_var_type_reference)
 #define LS_VAR_IS_STRING(var) (var->type == ls_var_type_string)
 #define LS_VAR_IS_BOOLEAN(var) (var->type == ls_var_type_boolean)
+#define LS_VAR_IS_MODULE(var) (var->type == ls_var_type_module)
+#define LS_VAR_IS_OBJECT(var) (var->type == ls_var_type_object)
+#define LS_VAR_IS_ARRAY(var) (var->type == ls_var_type_array)
+#define LS_VAR_IS_FUNCTION(var) (var->type == ls_var_type_function)
 
 #define LS_IS_SPACE(c) (c == ' ' || c == '\t' || c == '\n' || c == '\r')
 
@@ -114,7 +118,7 @@ node->type != ls_node_type_array &&\
 node->type != ls_node_type_array_element &&\
 node->type != ls_node_type_object_property)
 
-#define boolean_false 0
-#define boolean_true 1
+#define ls_boolean_false 0
+#define ls_boolean_true 1
 
 #endif

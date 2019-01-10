@@ -1,5 +1,8 @@
+import stdlib;
+import string;
+
 def func(arr) do
-  CPrint(arr[4]);
+  Print(arr[4]);
 end
 
 a = 0;
@@ -11,5 +14,7 @@ do
   a = a + 1;
 end
 
+str = "Hello";
+a = StringLength(str);
 
-CPrint(arr[10]);
+Print(a);

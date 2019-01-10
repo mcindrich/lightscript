@@ -9,6 +9,6 @@ typedef signed int s32;
 typedef unsigned int u32;
 typedef signed long s64;
 typedef unsigned long u64;
-typedef u8 boolean;
+typedef u8 ls_boolean_t;
 
 #endif

@@ -2,6 +2,7 @@
 #include <lightscript/function.h>
 #include <lightscript/array.h>
 #include <lightscript/object.h>
+#include <lightscript/module.h>
 #include <stddef.h>
 #include <stdlib.h>
 #include <string.h>
@@ -52,7 +53,7 @@ void ls_var_copy(struct ls_var_t *v1, struct ls_var_t *v2) {
       ls_var_set_double_value(v1, ls_var_get_double_value(v2));
       break;
     case ls_var_type_boolean:
-      ls_var_set_boolean_value(v1, ls_var_get_boolean_value(v2));
+      ls_var_set_ls_boolean_t_value(v1, ls_var_get_ls_boolean_t_value(v2));
       break;
     case ls_var_type_string:
       ls_var_set_string_value(v1, ls_var_get_string_value(v2));
@@ -70,6 +71,8 @@ void ls_var_copy(struct ls_var_t *v1, struct ls_var_t *v2) {
       ls_var_set_object_value(v1, &temp_obj);
       break;
     case ls_var_type_array:
+      break;
+    case ls_var_type_module:
       break;
   }
   v1->type = v2->type;
@@ -139,9 +142,9 @@ void ls_var_set_double_value(struct ls_var_t *var, double val) {
   var->type = ls_var_type_double;
 }
 
-void ls_var_set_boolean_value(struct ls_var_t *var, boolean val) {
-  var->value = (boolean *) malloc(sizeof(boolean));
-  *((boolean *)var->value) = val;
+void ls_var_set_ls_boolean_t_value(struct ls_var_t *var, ls_boolean_t val) {
+  var->value = (ls_boolean_t *) malloc(sizeof(ls_boolean_t));
+  *((ls_boolean_t *)var->value) = val;
   var->type = ls_var_type_boolean;
 }
 
@@ -203,6 +206,12 @@ void ls_var_set_array_value(struct ls_var_t *var, struct ls_array_t *val) {
   var->type = ls_var_type_array;
 }
 
+void ls_var_set_module_value(struct ls_var_t *var, struct ls_module_t *val) {
+  var->value = (struct ls_module_t *) malloc(sizeof(struct ls_module_t));
+  *((struct ls_module_t *)var->value) = *val;
+  var->type = ls_var_type_module;
+}
+
 // --------------------------------------------------------------
 
 // getters
@@ -242,8 +251,8 @@ double ls_var_get_double_value(struct ls_var_t *var) {
   return *((double *)var->value);
 }
 
-boolean ls_var_get_boolean_value(struct ls_var_t *var) {
-  return *((boolean *)var->value);
+ls_boolean_t ls_var_get_ls_boolean_t_value(struct ls_var_t *var) {
+  return *((ls_boolean_t *)var->value);
 }
 
 char* ls_var_get_string_value(struct ls_var_t *var) {
@@ -264,6 +273,10 @@ struct ls_object_t *ls_var_get_object_value(struct ls_var_t *var) {
 
 struct ls_array_t *ls_var_get_array_value(struct ls_var_t *var) {
   return (struct ls_array_t *)var->value; 
+}
+
+struct ls_module_t *ls_var_get_module_value(struct ls_var_t *var) {
+  return (struct ls_module_t *)var->value;
 }
 
 // --------------------------------------------------------------
@@ -428,37 +441,37 @@ struct ls_var_t ls_var_operator_lt(struct ls_var_t *l, struct ls_var_t *r) {
   if(LS_VAR_IS_INT(l) && LS_VAR_IS_INT(r)) {
     // int int ==> for now only s32
     if(ls_var_get_s32_value(l) < ls_var_get_s32_value(r)) {
-      ls_var_set_boolean_value(&new, boolean_true);
+      ls_var_set_ls_boolean_t_value(&new, ls_boolean_true);
     } else {
-      ls_var_set_boolean_value(&new, boolean_false);
+      ls_var_set_ls_boolean_t_value(&new, ls_boolean_false);
     }
   } else if(LS_VAR_IS_DOUBLE(l) && LS_VAR_IS_DOUBLE(r)) {
     // double double
     if(ls_var_get_double_value(l) < ls_var_get_double_value(r)) {
-      ls_var_set_boolean_value(&new, boolean_true);
+      ls_var_set_ls_boolean_t_value(&new, ls_boolean_true);
     } else {
-      ls_var_set_boolean_value(&new, boolean_false);
+      ls_var_set_ls_boolean_t_value(&new, ls_boolean_false);
     }
   } else if(LS_VAR_IS_INT(l) && LS_VAR_IS_DOUBLE(r)) {
     // int double
     if(ls_var_get_s32_value(l) < ls_var_get_double_value(r)) {
-      ls_var_set_boolean_value(&new, boolean_true);
+      ls_var_set_ls_boolean_t_value(&new, ls_boolean_true);
     } else {
-      ls_var_set_boolean_value(&new, boolean_false);
+      ls_var_set_ls_boolean_t_value(&new, ls_boolean_false);
     }
   } else if(LS_VAR_IS_DOUBLE(l) && LS_VAR_IS_INT(r)) {
     // double int
     if(ls_var_get_double_value(l) < ls_var_get_s32_value(r)) {
-      ls_var_set_boolean_value(&new, boolean_true);
+      ls_var_set_ls_boolean_t_value(&new, ls_boolean_true);
     } else {
-      ls_var_set_boolean_value(&new, boolean_false);
+      ls_var_set_ls_boolean_t_value(&new, ls_boolean_false);
     }
   } else if(LS_VAR_IS_STRING(l) && LS_VAR_IS_STRING(r)) {
     // string string
     if(strlen(ls_var_get_string_value(l)) < strlen(ls_var_get_string_value(r))) {
-      ls_var_set_boolean_value(&new, boolean_true);
+      ls_var_set_ls_boolean_t_value(&new, ls_boolean_true);
     } else {
-      ls_var_set_boolean_value(&new, boolean_false);
+      ls_var_set_ls_boolean_t_value(&new, ls_boolean_false);
     }
   } else {
     // err
@@ -474,37 +487,37 @@ struct ls_var_t ls_var_operator_le(struct ls_var_t *l, struct ls_var_t *r) {
   if(LS_VAR_IS_INT(l) && LS_VAR_IS_INT(r)) {
     // int int ==> for now only s32
     if(ls_var_get_s32_value(l) <= ls_var_get_s32_value(r)) {
-      ls_var_set_boolean_value(&new, boolean_true);
+      ls_var_set_ls_boolean_t_value(&new, ls_boolean_true);
     } else {
-      ls_var_set_boolean_value(&new, boolean_false);
+      ls_var_set_ls_boolean_t_value(&new, ls_boolean_false);
     }
   } else if(LS_VAR_IS_DOUBLE(l) && LS_VAR_IS_DOUBLE(r)) {
     // double double
     if(ls_var_get_double_value(l) <= ls_var_get_double_value(r)) {
-      ls_var_set_boolean_value(&new, boolean_true);
+      ls_var_set_ls_boolean_t_value(&new, ls_boolean_true);
     } else {
-      ls_var_set_boolean_value(&new, boolean_false);
+      ls_var_set_ls_boolean_t_value(&new, ls_boolean_false);
     }
   } else if(LS_VAR_IS_INT(l) && LS_VAR_IS_DOUBLE(r)) {
     // int double
     if(ls_var_get_s32_value(l) <= ls_var_get_double_value(r)) {
-      ls_var_set_boolean_value(&new, boolean_true);
+      ls_var_set_ls_boolean_t_value(&new, ls_boolean_true);
     } else {
-      ls_var_set_boolean_value(&new, boolean_false);
+      ls_var_set_ls_boolean_t_value(&new, ls_boolean_false);
     }
   } else if(LS_VAR_IS_DOUBLE(l) && LS_VAR_IS_INT(r)) {
     // double int
     if(ls_var_get_double_value(l) <= ls_var_get_s32_value(r)) {
-      ls_var_set_boolean_value(&new, boolean_true);
+      ls_var_set_ls_boolean_t_value(&new, ls_boolean_true);
     } else {
-      ls_var_set_boolean_value(&new, boolean_false);
+      ls_var_set_ls_boolean_t_value(&new, ls_boolean_false);
     }
   } else if(LS_VAR_IS_STRING(l) && LS_VAR_IS_STRING(r)) {
     // string string
     if(strlen(ls_var_get_string_value(l)) <= strlen(ls_var_get_string_value(r))) {
-      ls_var_set_boolean_value(&new, boolean_true);
+      ls_var_set_ls_boolean_t_value(&new, ls_boolean_true);
     } else {
-      ls_var_set_boolean_value(&new, boolean_false);
+      ls_var_set_ls_boolean_t_value(&new, ls_boolean_false);
     }
   } else {
     // err
@@ -520,37 +533,37 @@ struct ls_var_t ls_var_operator_gt(struct ls_var_t *l, struct ls_var_t *r) {
   if(LS_VAR_IS_INT(l) && LS_VAR_IS_INT(r)) {
     // int int ==> for now only s32
     if(ls_var_get_s32_value(l) > ls_var_get_s32_value(r)) {
-      ls_var_set_boolean_value(&new, boolean_true);
+      ls_var_set_ls_boolean_t_value(&new, ls_boolean_true);
     } else {
-      ls_var_set_boolean_value(&new, boolean_false);
+      ls_var_set_ls_boolean_t_value(&new, ls_boolean_false);
     }
   } else if(LS_VAR_IS_DOUBLE(l) && LS_VAR_IS_DOUBLE(r)) {
     // double double
     if(ls_var_get_double_value(l) > ls_var_get_double_value(r)) {
-      ls_var_set_boolean_value(&new, boolean_true);
+      ls_var_set_ls_boolean_t_value(&new, ls_boolean_true);
     } else {
-      ls_var_set_boolean_value(&new, boolean_false);
+      ls_var_set_ls_boolean_t_value(&new, ls_boolean_false);
     }
   } else if(LS_VAR_IS_INT(l) && LS_VAR_IS_DOUBLE(r)) {
     // int double
     if(ls_var_get_s32_value(l) > ls_var_get_double_value(r)) {
-      ls_var_set_boolean_value(&new, boolean_true);
+      ls_var_set_ls_boolean_t_value(&new, ls_boolean_true);
     } else {
-      ls_var_set_boolean_value(&new, boolean_false);
+      ls_var_set_ls_boolean_t_value(&new, ls_boolean_false);
     }
   } else if(LS_VAR_IS_DOUBLE(l) && LS_VAR_IS_INT(r)) {
     // double int
     if(ls_var_get_double_value(l) > ls_var_get_s32_value(r)) {
-      ls_var_set_boolean_value(&new, boolean_true);
+      ls_var_set_ls_boolean_t_value(&new, ls_boolean_true);
     } else {
-      ls_var_set_boolean_value(&new, boolean_false);
+      ls_var_set_ls_boolean_t_value(&new, ls_boolean_false);
     }
   } else if(LS_VAR_IS_STRING(l) && LS_VAR_IS_STRING(r)) {
     // string string
     if(strlen(ls_var_get_string_value(l)) > strlen(ls_var_get_string_value(r))) {
-      ls_var_set_boolean_value(&new, boolean_true);
+      ls_var_set_ls_boolean_t_value(&new, ls_boolean_true);
     } else {
-      ls_var_set_boolean_value(&new, boolean_false);
+      ls_var_set_ls_boolean_t_value(&new, ls_boolean_false);
     }
   } else {
     // err
@@ -566,37 +579,37 @@ struct ls_var_t ls_var_operator_ge(struct ls_var_t *l, struct ls_var_t *r) {
   if(LS_VAR_IS_INT(l) && LS_VAR_IS_INT(r)) {
     // int int ==> for now only s32
     if(ls_var_get_s32_value(l) >= ls_var_get_s32_value(r)) {
-      ls_var_set_boolean_value(&new, boolean_true);
+      ls_var_set_ls_boolean_t_value(&new, ls_boolean_true);
     } else {
-      ls_var_set_boolean_value(&new, boolean_false);
+      ls_var_set_ls_boolean_t_value(&new, ls_boolean_false);
     }
   } else if(LS_VAR_IS_DOUBLE(l) && LS_VAR_IS_DOUBLE(r)) {
     // double double
     if(ls_var_get_double_value(l) >= ls_var_get_double_value(r)) {
-      ls_var_set_boolean_value(&new, boolean_true);
+      ls_var_set_ls_boolean_t_value(&new, ls_boolean_true);
     } else {
-      ls_var_set_boolean_value(&new, boolean_false);
+      ls_var_set_ls_boolean_t_value(&new, ls_boolean_false);
     }
   } else if(LS_VAR_IS_INT(l) && LS_VAR_IS_DOUBLE(r)) {
     // int double
     if(ls_var_get_s32_value(l) >= ls_var_get_double_value(r)) {
-      ls_var_set_boolean_value(&new, boolean_true);
+      ls_var_set_ls_boolean_t_value(&new, ls_boolean_true);
     } else {
-      ls_var_set_boolean_value(&new, boolean_false);
+      ls_var_set_ls_boolean_t_value(&new, ls_boolean_false);
     }
   } else if(LS_VAR_IS_DOUBLE(l) && LS_VAR_IS_INT(r)) {
     // double int
     if(ls_var_get_double_value(l) >= ls_var_get_s32_value(r)) {
-      ls_var_set_boolean_value(&new, boolean_true);
+      ls_var_set_ls_boolean_t_value(&new, ls_boolean_true);
     } else {
-      ls_var_set_boolean_value(&new, boolean_false);
+      ls_var_set_ls_boolean_t_value(&new, ls_boolean_false);
     }
   } else if(LS_VAR_IS_STRING(l) && LS_VAR_IS_STRING(r)) {
     // string string
     if(strlen(ls_var_get_string_value(l)) >= strlen(ls_var_get_string_value(r))) {
-      ls_var_set_boolean_value(&new, boolean_true);
+      ls_var_set_ls_boolean_t_value(&new, ls_boolean_true);
     } else {
-      ls_var_set_boolean_value(&new, boolean_false);
+      ls_var_set_ls_boolean_t_value(&new, ls_boolean_false);
     }
   } else {
     // err
@@ -612,37 +625,37 @@ struct ls_var_t ls_var_operator_eq(struct ls_var_t *l, struct ls_var_t *r) {
   if(LS_VAR_IS_INT(l) && LS_VAR_IS_INT(r)) {
     // int int ==> for now only s32
     if(ls_var_get_s32_value(l) == ls_var_get_s32_value(r)) {
-      ls_var_set_boolean_value(&new, boolean_true);
+      ls_var_set_ls_boolean_t_value(&new, ls_boolean_true);
     } else {
-      ls_var_set_boolean_value(&new, boolean_false);
+      ls_var_set_ls_boolean_t_value(&new, ls_boolean_false);
     }
   } else if(LS_VAR_IS_DOUBLE(l) && LS_VAR_IS_DOUBLE(r)) {
     // double double
     if(ls_var_get_double_value(l) == ls_var_get_double_value(r)) {
-      ls_var_set_boolean_value(&new, boolean_true);
+      ls_var_set_ls_boolean_t_value(&new, ls_boolean_true);
     } else {
-      ls_var_set_boolean_value(&new, boolean_false);
+      ls_var_set_ls_boolean_t_value(&new, ls_boolean_false);
     }
   } else if(LS_VAR_IS_INT(l) && LS_VAR_IS_DOUBLE(r)) {
     // int double
     if(ls_var_get_s32_value(l) == ls_var_get_double_value(r)) {
-      ls_var_set_boolean_value(&new, boolean_true);
+      ls_var_set_ls_boolean_t_value(&new, ls_boolean_true);
     } else {
-      ls_var_set_boolean_value(&new, boolean_false);
+      ls_var_set_ls_boolean_t_value(&new, ls_boolean_false);
     }
   } else if(LS_VAR_IS_DOUBLE(l) && LS_VAR_IS_INT(r)) {
     // double int
     if(ls_var_get_double_value(l) == ls_var_get_s32_value(r)) {
-      ls_var_set_boolean_value(&new, boolean_true);
+      ls_var_set_ls_boolean_t_value(&new, ls_boolean_true);
     } else {
-      ls_var_set_boolean_value(&new, boolean_false);
+      ls_var_set_ls_boolean_t_value(&new, ls_boolean_false);
     }
   } else if(LS_VAR_IS_STRING(l) && LS_VAR_IS_STRING(r)) {
     // string string
     if(strcmp(ls_var_get_string_value(l), ls_var_get_string_value(r)) == 0) {
-      ls_var_set_boolean_value(&new, boolean_true);
+      ls_var_set_ls_boolean_t_value(&new, ls_boolean_true);
     } else {
-      ls_var_set_boolean_value(&new, boolean_false);
+      ls_var_set_ls_boolean_t_value(&new, ls_boolean_false);
     }
   } else {
     // err
@@ -658,37 +671,37 @@ struct ls_var_t ls_var_operator_ne(struct ls_var_t *l, struct ls_var_t *r) {
   if(LS_VAR_IS_INT(l) && LS_VAR_IS_INT(r)) {
     // int int ==> for now only s32
     if(ls_var_get_s32_value(l) != ls_var_get_s32_value(r)) {
-      ls_var_set_boolean_value(&new, boolean_true);
+      ls_var_set_ls_boolean_t_value(&new, ls_boolean_true);
     } else {
-      ls_var_set_boolean_value(&new, boolean_false);
+      ls_var_set_ls_boolean_t_value(&new, ls_boolean_false);
     }
   } else if(LS_VAR_IS_DOUBLE(l) && LS_VAR_IS_DOUBLE(r)) {
     // double double
     if(ls_var_get_double_value(l) != ls_var_get_double_value(r)) {
-      ls_var_set_boolean_value(&new, boolean_true);
+      ls_var_set_ls_boolean_t_value(&new, ls_boolean_true);
     } else {
-      ls_var_set_boolean_value(&new, boolean_false);
+      ls_var_set_ls_boolean_t_value(&new, ls_boolean_false);
     }
   } else if(LS_VAR_IS_INT(l) && LS_VAR_IS_DOUBLE(r)) {
     // int double
     if(ls_var_get_s32_value(l) != ls_var_get_double_value(r)) {
-      ls_var_set_boolean_value(&new, boolean_true);
+      ls_var_set_ls_boolean_t_value(&new, ls_boolean_true);
     } else {
-      ls_var_set_boolean_value(&new, boolean_false);
+      ls_var_set_ls_boolean_t_value(&new, ls_boolean_false);
     }
   } else if(LS_VAR_IS_DOUBLE(l) && LS_VAR_IS_INT(r)) {
     // double int
     if(ls_var_get_double_value(l) != ls_var_get_s32_value(r)) {
-      ls_var_set_boolean_value(&new, boolean_true);
+      ls_var_set_ls_boolean_t_value(&new, ls_boolean_true);
     } else {
-      ls_var_set_boolean_value(&new, boolean_false);
+      ls_var_set_ls_boolean_t_value(&new, ls_boolean_false);
     }
   } else if(LS_VAR_IS_STRING(l) && LS_VAR_IS_STRING(r)) {
     // string string
     if(strcmp(ls_var_get_string_value(l), ls_var_get_string_value(r)) != 0) {
-      ls_var_set_boolean_value(&new, boolean_true);
+      ls_var_set_ls_boolean_t_value(&new, ls_boolean_true);
     } else {
-      ls_var_set_boolean_value(&new, boolean_false);
+      ls_var_set_ls_boolean_t_value(&new, ls_boolean_false);
     }
   } else {
     // err
@@ -760,10 +773,10 @@ struct ls_var_t ls_var_operator_or(struct ls_var_t *l, struct ls_var_t *r) {
   struct ls_var_t new;
   ls_var_create(&new);
   if(LS_VAR_IS_BOOLEAN(l) && LS_VAR_IS_BOOLEAN(r)) {
-    ls_var_set_boolean_value(&new, ls_var_get_boolean_value(l) ||
-      ls_var_get_boolean_value(r));
+    ls_var_set_ls_boolean_t_value(&new, ls_var_get_ls_boolean_t_value(l) ||
+      ls_var_get_ls_boolean_t_value(r));
   } else {
-    // error ==> operands must be boolean type
+    // error ==> operands must be ls_boolean_t type
   }
   return new;
 }
@@ -772,10 +785,10 @@ struct ls_var_t ls_var_operator_and(struct ls_var_t *l, struct ls_var_t *r) {
   struct ls_var_t new;
   ls_var_create(&new);
   if(LS_VAR_IS_BOOLEAN(l) && LS_VAR_IS_BOOLEAN(r)) {
-    ls_var_set_boolean_value(&new, ls_var_get_boolean_value(l) &&
-      ls_var_get_boolean_value(r));
+    ls_var_set_ls_boolean_t_value(&new, ls_var_get_ls_boolean_t_value(l) &&
+      ls_var_get_ls_boolean_t_value(r));
   } else {
-    // error ==> operands must be boolean type
+    // error ==> operands must be ls_boolean_t type
   }
   return new;
 }
@@ -805,6 +818,8 @@ void ls_var_delete_value(struct ls_var_t *var) {
       ls_array_delete(ls_var_get_array_value(var));
     } else if(var->type == ls_var_type_object) {
       ls_object_delete(ls_var_get_object_value(var));
+    } else if(var->type == ls_var_type_module) {
+      ls_module_delete(ls_var_get_module_value(var));
     }
     free(var->value);
     var->type = ls_var_type_none;
