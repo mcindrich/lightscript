@@ -19,6 +19,20 @@ int main(int argc, char **argv) {
     ls_interpreter_delete(&inter);
   }
 #else
+  FILE * fp;
+  char * line = NULL;
+  size_t len = 0;
+  size_t read;
+
+  fp = stdin;
+
+  while ((read = getline(&line, &len, fp)) != -1) {
+      printf("Retrieved line of length %zu:\n", read);
+      printf("%s", line);
+  }
+  
+  if (line)
+      free(line);
 #endif
   return main_ret_val;
 }

@@ -6,6 +6,7 @@
 #include <math.h>
 #include <stdio.h>
 #include <string.h>
+#include <stdlib.h>
 
 struct ls_var_t ls_stdlib_print_func(struct ls_var_list_t *globals, struct ls_var_list_t *args) {
   struct ls_var_t ret, *var;
@@ -76,6 +77,25 @@ struct ls_var_t ls_math_pow_func(struct ls_var_list_t *globals, struct ls_var_li
   return ret;
 }
 
+struct ls_var_t ls_stdlib_input_func(struct ls_var_list_t *globals, struct ls_var_list_t *args) {
+  struct ls_var_t ret;
+  ls_var_create(&ret);
+  char * line = NULL;
+  size_t len = 0;
+  size_t read;
+
+  read = getline(&line, &len, stdin);
+  if(read != -1) {
+    line[read-1] = 0;
+    ls_var_set_string_value(&ret, line);
+    if(line) {
+      free(line);
+    }
+  }
+
+  return ret;
+}
+
 struct ls_var_t ls_string_strlen_func(struct ls_var_list_t *globals, struct ls_var_list_t *args) {
   struct ls_var_t ret, *str_ptr;
   ls_var_create(&ret);
@@ -117,8 +137,8 @@ void LS_MODULES_BUILD(struct ls_var_list_t *ls) {
   // load another wanted files by using modules structure
   // all needed modules need to be added to the list in order for them to be able to include
   struct ls_module_t stdlib_mod, string_mod, math_mod;
-  struct ls_function_t print_f, pow_f, new_f, strlen_f;
-  struct ls_var_t print_f_var, pow_f_var, new_f_var, strlen_f_var, 
+  struct ls_function_t print_f, pow_f, new_f, strlen_f, input_f;
+  struct ls_var_t print_f_var, pow_f_var, new_f_var, strlen_f_var, input_f_var,
     stdlib_mod_var, string_mod_var, math_mod_var;
 
   // creating variables
@@ -137,6 +157,8 @@ void LS_MODULES_BUILD(struct ls_var_list_t *ls) {
   // function vars
   ls_var_create(&print_f_var);
   ls_var_set_name(&print_f_var, "Print");
+  ls_var_create(&input_f_var);
+  ls_var_set_name(&input_f_var, "Input");
 
   ls_var_create(&strlen_f_var);
   ls_var_set_name(&strlen_f_var, "StringLength");
@@ -158,6 +180,7 @@ void LS_MODULES_BUILD(struct ls_var_list_t *ls) {
 
   // creating functions
   ls_function_create(&print_f);
+  ls_function_create(&input_f);
   ls_function_create(&new_f);
   ls_function_create(&pow_f);
   ls_function_create(&strlen_f);
@@ -166,6 +189,7 @@ void LS_MODULES_BUILD(struct ls_var_list_t *ls) {
   // functions
   // cprint function
   ls_function_set_c_function(&print_f, ls_stdlib_print_func);
+  ls_function_set_c_function(&input_f, ls_stdlib_input_func);
 
   // new function
   ls_function_set_c_function(&new_f, ls_c_new_func);
@@ -178,12 +202,14 @@ void LS_MODULES_BUILD(struct ls_var_list_t *ls) {
   // setting variables
   // functions
   ls_var_set_function_value(&print_f_var, &print_f);
+  ls_var_set_function_value(&input_f_var, &input_f);
   ls_var_set_function_value(&pow_f_var, &pow_f);
   ls_var_set_function_value(&new_f_var, &new_f);
   ls_var_set_function_value(&strlen_f_var, &strlen_f);
 
   // adding variables to modules
   ls_module_add_var(&stdlib_mod, &print_f_var);
+  ls_module_add_var(&stdlib_mod, &input_f_var);
   ls_module_add_var(&string_mod, &strlen_f_var);
   ls_module_add_var(&math_mod, &pow_f_var);
   // create modules

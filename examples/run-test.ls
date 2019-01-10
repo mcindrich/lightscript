@@ -17,4 +17,8 @@ end
 str = "Hello";
 a = StringLength(str);
 
+name = Input();
+
+Print("name = ", name);
+
 Print(a);
