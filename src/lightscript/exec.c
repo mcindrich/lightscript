@@ -584,7 +584,15 @@ struct ls_var_t ls_exec_obj_node(struct ls_exec_t *exec,
 
   } else {
     obj_ptr = ls_var_get_object_value(list_var);
-    ls_var_list_debug_print(&obj_ptr->object_vars);
+    if(node->children[1]->type == ls_node_type_expression) {
+      list_var = ls_var_list_get_var_by_name(&obj_ptr->object_vars, 
+        node->children[1]->token.value.s);
+      if(list_var) {
+        ls_var_set_reference_value(&ret, list_var);
+      }
+    }
+    //printf("Node: %d\n", node->children[1]->type);
+    //ls_var_list_debug_print(&obj_ptr->object_vars);
   }
   return ret;
 }
