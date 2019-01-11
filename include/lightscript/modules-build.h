@@ -112,14 +112,40 @@ struct ls_var_t ls_string_strlen_func(struct ls_var_list_t *globals, struct ls_v
 struct ls_var_t ls_c_new_func(struct ls_var_list_t *globals, struct ls_var_list_t *args) {
   // function for creating new objects
   // get the object using the name and copy the object
-  struct ls_var_t ret, *obj_var = ls_var_list_get_var_by_pos(args, 0);
+  struct ls_var_t ret, *obj_var = ls_var_list_get_var_by_pos(args, 0), *constructor_var;
+  struct ls_function_t *constructor;
   ls_var_create(&ret);
 
   if(obj_var && LS_VAR_IS_REFERENCE(obj_var)) {
     obj_var = ls_var_get_reference_value(obj_var);
   }
   if(obj_var && obj_var->type == ls_var_type_object) {
+    //printf("Object name: %s\n", obj_var->name);
     ls_var_copy(&ret, obj_var);
+    constructor_var = ls_var_list_get_var_by_name_and_type(&ls_var_get_object_value(&ret)->object_vars, obj_var->name, ls_var_type_function);
+
+    // call constructor if it exists
+    if(constructor_var) {
+      constructor = ls_var_get_function_value(constructor_var);
+      ls_function_execute(constructor, &ls_var_get_object_value(&ret)->object_vars, args);
+    }
+  }
+
+  return ret;
+}
+
+struct ls_var_t ls_c_copy_func(struct ls_var_list_t *globals, struct ls_var_list_t *args) {
+  // function for creating new objects
+  // get the object using the name and copy the object
+  struct ls_var_t ret, *var_to_copy = ls_var_list_get_var_by_pos(args, 0);
+  ls_var_create(&ret);
+
+  if(var_to_copy && LS_VAR_IS_REFERENCE(var_to_copy)) {
+    var_to_copy = ls_var_get_reference_value(var_to_copy);
+  }
+  if(var_to_copy) {
+    //printf("Object name: %s\n", obj_var->name);
+    ls_var_copy(&ret, var_to_copy);
   }
 
   return ret;
@@ -137,9 +163,9 @@ void LS_MODULES_BUILD(struct ls_var_list_t *ls) {
   // load another wanted files by using modules structure
   // all needed modules need to be added to the list in order for them to be able to include
   struct ls_module_t stdlib_mod, string_mod, math_mod;
-  struct ls_function_t print_f, pow_f, new_f, strlen_f, input_f;
+  struct ls_function_t print_f, pow_f, new_f, strlen_f, input_f, copy_f;
   struct ls_var_t print_f_var, pow_f_var, new_f_var, strlen_f_var, input_f_var,
-    stdlib_mod_var, string_mod_var, math_mod_var;
+    copy_f_var, stdlib_mod_var, string_mod_var, math_mod_var;
 
   // creating variables
 
@@ -168,6 +194,8 @@ void LS_MODULES_BUILD(struct ls_var_list_t *ls) {
 
   ls_var_create(&new_f_var);
   ls_var_set_name(&new_f_var, "New");
+  ls_var_create(&copy_f_var);
+  ls_var_set_name(&copy_f_var, "Copy");
   ///
 
   /////////////////////
@@ -182,6 +210,7 @@ void LS_MODULES_BUILD(struct ls_var_list_t *ls) {
   ls_function_create(&print_f);
   ls_function_create(&input_f);
   ls_function_create(&new_f);
+  ls_function_create(&copy_f);
   ls_function_create(&pow_f);
   ls_function_create(&strlen_f);
   //////////////////////////
@@ -193,6 +222,7 @@ void LS_MODULES_BUILD(struct ls_var_list_t *ls) {
 
   // new function
   ls_function_set_c_function(&new_f, ls_c_new_func);
+  ls_function_set_c_function(&copy_f, ls_c_copy_func);
 
   // cpow function
   ls_function_set_c_function(&pow_f, ls_math_pow_func);
@@ -205,6 +235,7 @@ void LS_MODULES_BUILD(struct ls_var_list_t *ls) {
   ls_var_set_function_value(&input_f_var, &input_f);
   ls_var_set_function_value(&pow_f_var, &pow_f);
   ls_var_set_function_value(&new_f_var, &new_f);
+  ls_var_set_function_value(&copy_f_var, &copy_f);
   ls_var_set_function_value(&strlen_f_var, &strlen_f);
 
   // adding variables to modules
@@ -226,6 +257,7 @@ void LS_MODULES_BUILD(struct ls_var_list_t *ls) {
 
   // after modules add global variables and functions included by default in the program
   ls_var_list_add_var(ls, &new_f_var);
+  ls_var_list_add_var(ls, &copy_f_var);
   ////////////////////////////////
 }
 

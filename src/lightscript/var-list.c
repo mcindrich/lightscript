@@ -79,9 +79,17 @@ struct ls_var_t *ls_var_list_get_var_by_pos(struct ls_var_list_t *vl,
 struct ls_var_t *ls_var_list_get_var_by_name(struct ls_var_list_t *vl, 
   char *name) {
   size_t i = 0;
+  struct ls_var_t *var;
   for(; i < vl->count; i++) {
-    if(strcmp(vl->vars[i].name, name) == 0) {
-      return &vl->vars[i];
+    var = &vl->vars[i];
+    if(strcmp(var->name, name) == 0) {
+      return var;
+    }
+    if(LS_VAR_IS_MODULE(var) && ls_var_get_module_value(var)->imported) {
+      // for now use recursion ==> later add a stack
+      var = ls_var_list_get_var_by_name(
+        &ls_var_get_module_value(var)->vars, name);
+      if(var) return var;
     }
   }
   return NULL;

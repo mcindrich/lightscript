@@ -388,9 +388,9 @@ struct ls_var_t ls_exec_function_call_statement(struct ls_exec_t *exec,
   ls_var_list_create(&args, 0);
   ls_var_create(&ret_var);
 
-  struct ls_var_t *func = ls_var_list_get_var_by_name_and_type(
-    exec->global_vars, node->token.value.s, ls_var_type_function);
-  
+  struct ls_var_t *func = ls_var_list_get_var_by_name(
+    exec->global_vars, node->token.value.s);
+  //printf("Calling func %s\n",  node->token.value.s);
   if(func) {
     if(node->children[0]) {
       if(node->children[0]->token.type == ls_token_type_comma) {
@@ -428,6 +428,8 @@ struct ls_var_t ls_exec_function_call_statement(struct ls_exec_t *exec,
         ls_var_list_add_var(&args, &temp_var);
       }
     }
+    LS_VAR_GET_FINAL_VALUE(func);
+    //printf("Final func: %s\n", func->name);
     struct ls_function_t *func_ptr = ls_var_get_function_value(func);
     ret_var = ls_function_execute(func_ptr, exec->global_vars, &args);
   } else {

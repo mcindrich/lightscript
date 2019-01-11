@@ -4,7 +4,7 @@
 #include <lightscript/token.h>
 
 // enable for debugging the parser and not to execute statements
-//#define PARSER_DEBUGGING
+// #define PARSER_DEBUGGING
 
 // enable for testing in main.c
 // #define MAIN_DEBUGGING
