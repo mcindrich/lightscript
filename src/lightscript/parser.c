@@ -167,6 +167,7 @@ struct ls_node_t *ls_parse_expression(struct ls_parser_t *parser, size_t *pos,
     } else if(parser->tokens[i].type == ls_token_type_lparenth) {
       // printf("Pushed lparenth\n");
       ls_token_stack_push(&op_stack, &parser->tokens[i]);
+      ++func_pos;
     } else if(parser->tokens[i].type == ls_token_type_lbracket) {
       ls_token_stack_push(&op_stack, &parser->tokens[i]);
       ls_node_create(&tnode0, 1, ls_node_type_array, 
@@ -195,7 +196,7 @@ struct ls_node_t *ls_parse_expression(struct ls_parser_t *parser, size_t *pos,
         } else {
           func_args[func_pos] = 1;
         }
-        ++func_pos;
+        //++func_pos;
       } else if(parser->tokens[i+1].type == ls_token_type_lbracket) {
         // array node
         ls_node_create(&tnode0, 1, ls_node_type_array_element, 
@@ -247,7 +248,7 @@ struct ls_node_t *ls_parse_expression(struct ls_parser_t *parser, size_t *pos,
         tnode2->children[1] = tnode0;
         ls_node_stack_push(&expr_stack, tnode2);
       }
-      if(func_stack.count) {
+      if(func_stack.count && func_pos == func_stack.count) {
         // it's a function
         pop_node = ls_node_stack_pop(&func_stack);
         if(func_args[--func_pos]) {
@@ -255,6 +256,7 @@ struct ls_node_t *ls_parse_expression(struct ls_parser_t *parser, size_t *pos,
         }
         ls_node_stack_push(&expr_stack, pop_node);
       }
+      --func_pos;
       ls_token_stack_pop(&op_stack);
     } else if(parser->tokens[i].type == ls_token_type_rbracket) {
       while(ls_token_stack_top(&op_stack) && ls_token_stack_top(&op_stack)->type != ls_token_type_lbracket) {

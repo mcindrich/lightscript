@@ -11,13 +11,6 @@ struct File
 
 end
 
-d = 200;
-
-c = d;
-c = 300;
-
-Print(d);
-
 a = New(File, "config.conf", "r");
 
 Print(a:mode);
