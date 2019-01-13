@@ -80,9 +80,7 @@ struct ls_var_t ls_var_operator_sub(struct ls_var_t *, struct ls_var_t *);
 struct ls_var_t ls_var_operator_mul(struct ls_var_t *, struct ls_var_t *);
 struct ls_var_t ls_var_operator_div(struct ls_var_t *, struct ls_var_t *);
 struct ls_var_t ls_var_operator_mod(struct ls_var_t *, struct ls_var_t *);
-
-// object operator
-struct ls_var_t ls_var_operator_obj(struct ls_var_t *, struct ls_var_t *);
+struct ls_var_t ls_var_operator_double_colon(struct ls_var_t *, struct ls_var_t *);
 
 struct ls_var_t ls_var_operator_lt(struct ls_var_t *, struct ls_var_t *);
 struct ls_var_t ls_var_operator_le(struct ls_var_t *, struct ls_var_t *);

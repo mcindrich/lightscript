@@ -11,8 +11,6 @@
 #include <stdlib.h>
 
 // Function definitions
-static struct ls_var_t ls_exec_expr_recursion(struct ls_exec_t *, 
-  struct ls_node_t *);
 static struct ls_var_t ls_exec_obj_node(struct ls_exec_t *, 
   struct ls_node_t *);
 static struct ls_var_t ls_exec_array_node(struct ls_exec_t *, 
@@ -206,8 +204,8 @@ struct ls_var_t ls_exec_expr_stack(struct ls_exec_t *exec,
           res = ls_var_operator_and(&left, &right);
         } else if(tt == ls_token_type_or_op) {
           res = ls_var_operator_or(&left, &right);
-        } else if(tt == ls_token_type_colon) {
-          res = ls_var_operator_obj(&left, &right);
+        } else if(tt == ls_token_type_double_colon) {
+          res = ls_var_operator_double_colon(&left, &right);
         }
         ls_var_delete(&left);
         if(tt != ls_token_type_equal || LS_VAR_IS_REFERENCE((&right))) {
@@ -232,89 +230,6 @@ struct ls_var_t ls_exec_expr_stack(struct ls_exec_t *exec,
   ls_node_stack_delete(&op_stack);
   ls_var_stack_delete(&var_stack);
   return ret_var;
-}
-
-struct ls_var_t ls_exec_expr_recursion(struct ls_exec_t *exec, 
-  struct ls_node_t *node) {
-  struct ls_var_t ret, left, right, *list_var;
-  ls_var_create(&ret);
-
-  enum ls_token_type_t tt = node->token.type;
-  if(node->type == ls_node_type_expression) {
-    if(node->children_count) {
-      left = ls_exec_expr_recursion(exec, node->children[0]);
-      right = ls_exec_expr_recursion(exec, node->children[1]);
-      if(tt == ls_token_type_plus) {
-        ret = ls_var_operator_add(&left, &right);
-      } else if(tt == ls_token_type_minus) {
-        ret = ls_var_operator_sub(&left, &right);
-      } else if(tt == ls_token_type_multiply) {
-        ret = ls_var_operator_mul(&left, &right);
-      } else if(tt == ls_token_type_divide) {
-        ret = ls_var_operator_div(&left, &right);
-      } else if(tt == ls_token_type_percent) {
-        ret = ls_var_operator_mod(&left, &right);
-      }  else if(tt == ls_token_type_less_than) {
-        ret = ls_var_operator_lt(&left, &right);
-      } else if(tt == ls_token_type_less_equal) {
-        ret = ls_var_operator_le(&left, &right);
-      } else if(tt == ls_token_type_greater_than) {
-        ret = ls_var_operator_gt(&left, &right);
-      } else if(tt == ls_token_type_greater_equal) {
-        ret = ls_var_operator_ge(&left, &right);
-      } else if(tt == ls_token_type_equal_equal) {
-        ret = ls_var_operator_eq(&left, &right);
-      } else if(tt == ls_token_type_not_equal) {
-        ret = ls_var_operator_ne(&left, &right);
-      } else if(tt == ls_token_type_and_op) {
-        ret = ls_var_operator_and(&left, &right);
-      } else if(tt == ls_token_type_or_op) {
-        ret = ls_var_operator_or(&left, &right);
-      }
-      ls_var_delete(&left);
-      ls_var_delete(&right);
-    } else {
-      if(tt == ls_token_type_number) {
-        double val = atof(node->token.value.s);
-        // check if it's an integer ==> TODO: all int types
-        // search for '.' and if it exists ==> it's a double
-        char* cont = strchr(node->token.value.s, '.');
-        if(!cont) {
-          ls_var_set_s32_value(&ret, (s32)val);
-        } else {
-          ls_var_set_double_value(&ret, val);
-        }
-      } else if(tt == ls_token_type_string) {
-        ls_var_set_string_value(&ret, node->token.value.s);
-      } else if(tt == ls_token_type_word) {
-        // find variable or object
-        if(exec->local_vars) {
-          // get local variable first
-          list_var = ls_var_list_get_var_by_name(exec->local_vars, 
-            node->token.value.s);
-          if(!list_var) {
-            // get global variable
-            list_var = ls_var_list_get_var_by_name(exec->global_vars, 
-              node->token.value.s);
-          }
-        } else {
-          // get global variable
-          list_var = ls_var_list_get_var_by_name(exec->global_vars, 
-            node->token.value.s);
-        }
-        if(list_var) {
-          // ls_var_copy
-          ls_var_set_reference_value(&ret, list_var);
-        } else {
-          // error ==> no such variable
-        }
-      }
-    }
-  } else if(node->type == ls_node_type_function_call) {
-    ret = ls_exec_function_call_statement(exec, node);
-    // ls_var_set_s32_value(&ret, 0);
-  }
-  return ret;
 }
 
 void ls_exec_include_statement(struct ls_exec_t *exec, struct ls_node_t *node) {
@@ -593,8 +508,6 @@ struct ls_var_t ls_exec_obj_node(struct ls_exec_t *exec,
         ls_var_set_reference_value(&ret, list_var);
       }
     }
-    //printf("Node: %d\n", node->children[1]->type);
-    //ls_var_list_debug_print(&obj_ptr->object_vars);
   }
   return ret;
 }
@@ -604,12 +517,12 @@ void ls_exec_return_statement(struct ls_exec_t *exec, struct ls_node_t *node) {
     // error ==> no var given to write to ==> not a function
   } else {
     // write to the var pointer ==> needs to be an empty variable
-    *exec->return_var = ls_exec_expr_recursion(exec, node->children[0]);
+    *exec->return_var = ls_exec_expr_stack(exec, node->children[0]);
   }
 }
 
 ls_boolean_t ls_exec_if_statement(struct ls_exec_t *exec, struct ls_node_t *node) {
-  struct ls_var_t res = ls_exec_expr_recursion(exec, node->children[0]);
+  struct ls_var_t res = ls_exec_expr_stack(exec, node->children[0]);
   ls_boolean_t ret = ls_boolean_false;
   if(res.type == ls_var_type_boolean && ls_var_get_ls_boolean_t_value(&res)) {
     ret = ls_boolean_true;
@@ -622,7 +535,7 @@ void ls_exec_run(struct ls_exec_t *exec) {
   struct ls_node_t *node = exec->root_node, *pop_node = NULL;
   struct ls_var_t ret_var;
   struct ls_node_stack_t node_stack;
-
+  
   ls_boolean_t if_passed = ls_boolean_false;
 
   // needs to be max stack size, but for now put 100 ==> ugly python style

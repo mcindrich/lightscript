@@ -323,6 +323,33 @@ struct ls_var_t ls_var_operator_add(struct ls_var_t *l, struct ls_var_t *r) {
   return new;
 }
 
+struct ls_var_t ls_var_operator_double_colon(struct ls_var_t *l, 
+  struct ls_var_t *r) {
+  struct ls_var_t new;
+  struct ls_array_t arr;
+  u32 start, end, i;
+  ls_var_create(&new);
+  
+  ls_var_check_operator_reference(&l, &r);
+  
+  if(LS_VAR_IS_INT(l) && LS_VAR_IS_INT(r)) {
+    // get left and right operand and create an array from one to another
+    start = ls_var_get_s32_value(l), end = ls_var_get_s32_value(r);
+    ls_array_create(&arr, end > start && start > 0? end - start : 0);
+    for(i = start; i <= end; i++) {
+      ls_var_create(ls_array_get_element(&arr, i));
+      ls_var_set_s32_value(ls_array_get_element(&arr, i), i);
+    }
+    ls_var_set_array_value(&new, &arr);
+  } else if(LS_VAR_IS_STRING(l) && LS_VAR_IS_STRING(r)) {
+    // permutation of strings ==
+    // ls_var_set_string_concat_value(&new, l->value, r->value);    
+  } else {
+    // err
+  }
+  return new;
+}
+
 struct ls_var_t ls_var_operator_sub(struct ls_var_t *l, struct ls_var_t *r) {
   struct ls_var_t new;
   ls_var_create(&new);

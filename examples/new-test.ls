@@ -13,4 +13,4 @@ end
 
 a = New(File, "config.conf", "r");
 
-Print(a:mode);
+Print(a:filename);
